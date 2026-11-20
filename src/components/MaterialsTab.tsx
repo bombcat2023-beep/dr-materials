@@ -31,6 +31,7 @@ export function MaterialsTab({
   onEdit,
   onDelete,
 }: Props) {
+  const [listingSearch, setListingSearch] = useState('');
   const [search, setSearch] = useState('');
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
 
@@ -42,10 +43,8 @@ export function MaterialsTab({
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
-
     return stats.filter((m) => {
       const label = m.variant ? `${m.name} ${m.variant}` : m.name;
-
       return (
         label.toLowerCase().includes(q) ||
         m.subcategory.toLowerCase().includes(q)
@@ -53,10 +52,20 @@ export function MaterialsTab({
     });
   }, [stats, search]);
 
-  const activeFeed = useMemo(
-    () => listings.filter((l) => l.status === 'active'),
-    [listings]
-  );
+  const activeFeed = useMemo(() => {
+    const q = listingSearch.toLowerCase().trim();
+    return listings.filter((l) => {
+      if (l.status !== 'active') return false;
+      if (!q) return true;
+      const matName = nameMap.get(l.material_id) || '';
+      const label = l.variant ? `${matName} ${l.variant}` : matName;
+      return (
+        label.toLowerCase().includes(q) ||
+        l.seller_contact.toLowerCase().includes(q) ||
+        (l.notes || '').toLowerCase().includes(q)
+      );
+    });
+  }, [listings, listingSearch, nameMap]);
 
   const selected = useMemo(
     () =>
@@ -65,7 +74,7 @@ export function MaterialsTab({
       ) || null,
     [stats, selectedKey]
   );
- 
+
   const selectedListings = useMemo(() => {
     if (!selected) return [];
     return listings.filter(
@@ -77,6 +86,18 @@ export function MaterialsTab({
 
   return (
     <div className="space-y-6">
+      {/* Top Search Bar — Filters Active Player Listings */}
+      <div className="relative">
+        <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+        <input
+          type="text"
+          placeholder="Search active player listings (material, sub-type, seller, or notes)..."
+          value={listingSearch}
+          onChange={(e) => setListingSearch(e.target.value)}
+          className="w-full bg-slate-900 border border-slate-700 rounded-lg pl-9 pr-4 py-2 text-sm text-white focus:outline-none focus:border-amber-400"
+        />
+      </div>
+
       {/* Live Active Listings Feed */}
       <section className="bg-slate-900 border border-slate-800 rounded-xl p-5">
         <div className="flex items-center justify-between mb-3">
@@ -98,8 +119,9 @@ export function MaterialsTab({
 
         {activeFeed.length === 0 ? (
           <p className="text-sm text-slate-400">
-            No active material listings yet. Sign in and click &ldquo;List
-            Material&rdquo; to post the first one!
+            {listingSearch
+              ? 'No active listings match your search.'
+              : 'No active material listings yet. Sign in and click “List Material” to post the first one!'}
           </p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -141,7 +163,6 @@ export function MaterialsTab({
                     )}
                   </div>
                 </div>
-
                 {l.notes && (
                   <p className="text-xs text-slate-400 italic">{l.notes}</p>
                 )}
@@ -162,7 +183,7 @@ export function MaterialsTab({
 
                     {l.seller_discord_id && (
                       <a
-                        href={`https://discord.com/users/${l.seller_discord_id}`}
+                        href={'https://discord.com' + l.seller_discord_id}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1 bg-indigo-600/20 hover:bg-indigo-600/40 border border-indigo-500/40 text-indigo-300 px-2 py-0.5 rounded text-xs font-medium transition"
@@ -211,14 +232,13 @@ export function MaterialsTab({
         )}
       </section>
 
-      {/* Quick Search */}
+      {/* Bottom Search Bar — Filters Materials Price Index Table */}
       <div className="relative">
         <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
 
         <input
           type="text"
           placeholder="Search materials or sub-types (e.g. Heavy Titanese, Lelori Limb, Diamondique Boulder)..."
-          value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="w-full bg-slate-900 border border-slate-700 rounded-lg pl-9 pr-4 py-2 text-sm text-white focus:outline-none focus:border-amber-400"
         />
@@ -279,7 +299,6 @@ export function MaterialsTab({
               </button>
             </div>
           </div>
-
           {/* Material Listing History */}
           <div className="space-y-2">
             {selectedListings.length === 0 ? (
@@ -303,6 +322,12 @@ export function MaterialsTab({
                       {l.status.toUpperCase()}
                     </span>
 
+                    {l.variant && (
+                      <span className="text-amber-400 text-xs font-medium">
+                        ({l.variant})
+                      </span>
+                    )}
+
                     <span>
                       Vol: <strong>{l.quantity}</strong>
                       {l.quality ? ` (Q${l.quality})` : ''}
@@ -313,9 +338,7 @@ export function MaterialsTab({
                       {l.listed_kronars != null && (
                         <strong>{fmtNum(l.listed_kronars)} PK/vol</strong>
                       )}
-                      {l.listed_kronars != null &&
-                        l.listed_usd != null &&
-                        ' / '}
+                      {l.listed_kronars != null && l.listed_usd != null && ' / '}
                       {l.listed_usd != null && (
                         <strong>{fmtUsd(l.listed_usd)}/vol</strong>
                       )}
@@ -327,9 +350,7 @@ export function MaterialsTab({
                         {l.sold_kronars != null && (
                           <strong>{fmtNum(l.sold_kronars)} PK/vol</strong>
                         )}
-                        {l.sold_kronars != null &&
-                          l.sold_usd != null &&
-                          ' / '}
+                        {l.sold_kronars != null && l.sold_usd != null && ' / '}
                         {l.sold_usd != null && (
                           <strong>{fmtUsd(l.sold_usd)}/vol</strong>
                         )}
@@ -350,7 +371,7 @@ export function MaterialsTab({
 
                     {l.seller_discord_id && (
                       <a
-                        href={`https://discord.com/users/${l.seller_discord_id}`}
+                        href={'https://discord.com' + l.seller_discord_id}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1 bg-indigo-600/20 hover:bg-indigo-600/40 border border-indigo-500/40 text-indigo-300 px-2 py-0.5 rounded text-xs font-medium transition"
