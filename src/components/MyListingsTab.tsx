@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useMemo } from 'react';
 import {
@@ -118,7 +118,7 @@ export function MyListingsTab({
         <div>
           <h2 className="text-lg font-bold text-slate-100">My Storefront Dashboard</h2>
           <p className="text-xs text-slate-400 mt-0.5">
-            {counts.activeTotal} active listing{counts.activeTotal === 1 ? '' : 's'} ·{' '}
+            {counts.activeTotal} active listing{counts.activeTotal === 1 ? '' : 's'} Â·{' '}
             {counts.soldTotal} completed sale{counts.soldTotal === 1 ? '' : 's'}
           </p>
         </div>
@@ -186,7 +186,7 @@ export function MyListingsTab({
                     </div>
                     <div className="text-xs text-slate-400 mt-0.5">
                       Vol: <strong className="text-slate-200">{l.quantity}</strong>
-                      {l.quality ? ` · Q${l.quality}` : ''}
+                      {l.quality ? ` Â· Q${l.quality}` : ''}
                     </div>
                   </div>
 

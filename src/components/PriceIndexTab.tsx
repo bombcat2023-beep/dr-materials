@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useMemo } from 'react';
 import { Search, TrendingUp } from 'lucide-react';
@@ -108,13 +108,13 @@ export function PriceIndexTab({ stats, listings }: Props) {
               <div>
                 <div className="text-xs text-slate-400">Avg Listed / Vol</div>
                 <div className="font-mono font-bold text-amber-400">
-                  {fmtNum(selected.avg_listed_kronars)} PK · {fmtUsd(selected.avg_listed_usd)}
+                  {fmtNum(selected.avg_listed_kronars)} PK Â· {fmtUsd(selected.avg_listed_usd)}
                 </div>
               </div>
               <div>
                 <div className="text-xs text-slate-400">Avg Sold / Vol</div>
                 <div className="font-mono font-bold text-emerald-400">
-                  {fmtNum(selected.avg_sold_kronars)} PK · {fmtUsd(selected.avg_sold_usd)}
+                  {fmtNum(selected.avg_sold_kronars)} PK Â· {fmtUsd(selected.avg_sold_usd)}
                 </div>
               </div>
             </div>
@@ -228,7 +228,7 @@ export function PriceIndexTab({ stats, listings }: Props) {
                       {fmtNum(m.avg_sold_kronars)} PK / {fmtUsd(m.avg_sold_usd)}
                     </td>
                     <td className="px-4 py-2.5 text-right text-xs text-slate-400">
-                      {m.active_count} active · {m.sold_count} sold
+                      {m.active_count} active Â· {m.sold_count} sold
                     </td>
                   </tr>
                 );

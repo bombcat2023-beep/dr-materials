@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useMemo } from 'react';
 import {
@@ -252,7 +252,7 @@ export function PlatsTab({
                 </span>
 
                 <span className="text-slate-400">
-                  {new Date(p.created_at).toLocaleDateString()} · Seller:{' '}
+                  {new Date(p.created_at).toLocaleDateString()} Â· Seller:{' '}
                   {p.seller_contact}
                 </span>
               </div>

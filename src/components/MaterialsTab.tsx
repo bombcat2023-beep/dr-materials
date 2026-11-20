@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useMemo } from 'react';
 import {
@@ -86,7 +86,7 @@ export function MaterialsTab({
 
   return (
     <div className="space-y-6">
-      {/* Top Search Bar — Filters Active Player Listings */}
+      {/* Top Search Bar â€” Filters Active Player Listings */}
       <div className="relative">
         <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
         <input
@@ -121,7 +121,7 @@ export function MaterialsTab({
           <p className="text-sm text-slate-400">
             {listingSearch
               ? 'No active listings match your search.'
-              : 'No active material listings yet. Sign in and click “List Material” to post the first one!'}
+              : 'No active material listings yet. Sign in and click â€œList Materialâ€ to post the first one!'}
           </p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -139,7 +139,7 @@ export function MaterialsTab({
 
                     <div className="text-xs text-slate-400 mt-0.5">
                       Vol: <strong className="text-slate-200">{l.quantity}</strong>
-                      {l.quality ? ` · Q${l.quality}` : ''}
+                      {l.quality ? ` Â· Q${l.quality}` : ''}
                     </div>
                   </div>
 
@@ -232,7 +232,7 @@ export function MaterialsTab({
         )}
       </section>
 
-      {/* Bottom Search Bar — Filters Materials Price Index Table */}
+      {/* Bottom Search Bar â€” Filters Materials Price Index Table */}
       <div className="relative">
         <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
 
@@ -251,7 +251,7 @@ export function MaterialsTab({
             <div>
               <span className="text-xs uppercase tracking-wider text-amber-400 font-semibold">
                 {selected.subcategory}
-                {selected.variant ? ` · ${selected.variant}` : ''}
+                {selected.variant ? ` Â· ${selected.variant}` : ''}
               </span>
 
               <h2 className="text-2xl font-bold">

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useMemo } from 'react';
 import {
@@ -70,7 +70,7 @@ export function CharactersTab({
       {/* Header & Post Listing Button */}
       <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-900 border border-slate-800 rounded-xl p-4">
         <p className="text-xs text-slate-400">
-          Community Character Exchange — Coordinate character transfers or account
+          Community Character Exchange â€” Coordinate character transfers or account
           takeovers directly via Discord or Simutronics.
         </p>
 
@@ -205,7 +205,7 @@ export function CharactersTab({
                   )}
                 </div>
 
-                {/* Edit, Mark Sold & Delete — Owner Only */}
+                {/* Edit, Mark Sold & Delete â€” Owner Only */}
                 {userId === c.seller_id && (
                   <div className="inline-flex items-center gap-1.5">
                     {c.status === 'active' && (
