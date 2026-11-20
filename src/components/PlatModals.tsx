@@ -74,7 +74,7 @@ export function ListPlatModal({ open, defaultContact, onClose, onSubmit }: ListP
               step="any"
               min="0.01"
               required
-              placeholder="e.g. 2.50"
+              placeholder="e.g. 0.85"
               value={ratePer1k}
               onChange={(e) => setRatePer1k(e.target.value)}
               className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm"
@@ -95,7 +95,7 @@ export function ListPlatModal({ open, defaultContact, onClose, onSubmit }: ListP
             <input
               type="text"
               required
-              placeholder="e.g. Kaelen"
+              placeholder="e.g. Seller's Handle"
               value={contact}
               onChange={(e) => setContact(e.target.value)}
               className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm"
@@ -105,7 +105,7 @@ export function ListPlatModal({ open, defaultContact, onClose, onSubmit }: ListP
             <label className="block text-xs text-slate-400 mb-1">Discord Handle (optional)</label>
             <input
               type="text"
-              placeholder="e.g. kaelen_dr"
+              placeholder="e.g. Discord Display Name"
               value={discord}
               onChange={(e) => setDiscord(e.target.value)}
               className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm"
@@ -117,7 +117,7 @@ export function ListPlatModal({ open, defaultContact, onClose, onSubmit }: ListP
           <label className="block text-xs text-slate-400 mb-1">Notes (optional)</label>
           <input
             type="text"
-            placeholder="e.g. PayPal F&F / Venmo, Crossing bank"
+            placeholder="e.g. PayPal F&F/Venmo/Gift of Adventure"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm"
