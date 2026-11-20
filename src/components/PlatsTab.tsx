@@ -1,4 +1,5 @@
-﻿'use client';
+﻿```tsx
+'use client';
 
 import React, { useMemo } from 'react';
 import {
@@ -63,6 +64,7 @@ export function PlatsTab({
       totalAvailablePk,
     };
   }, [plats]);
+
   return (
     <div className="space-y-6">
       {/* Live PK Exchange Rate Ticker Cards */}
@@ -163,6 +165,7 @@ export function PlatsTab({
                   {p.notes && (
                     <p className="text-xs text-slate-300 italic">{p.notes}</p>
                   )}
+
                   {userId === p.seller_id && (
                     <div className="inline-flex items-center gap-1.5">
                       <button
@@ -210,7 +213,7 @@ export function PlatsTab({
 
                       {p.seller_discord_id && (
                         <a
-                          href={'https://discord.com' + p.seller_discord_id}
+                          href={`https://discord.com/users/${p.seller_discord_id}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-1 bg-indigo-600/20 hover:bg-indigo-600/40 border border-indigo-500/40 text-indigo-300 px-2 py-0.5 rounded text-xs font-medium transition"
@@ -252,7 +255,7 @@ export function PlatsTab({
                 </span>
 
                 <span className="text-slate-400">
-                  {new Date(p.created_at).toLocaleDateString()} Â· Seller:{' '}
+                  {new Date(p.created_at).toLocaleDateString()} · Seller:{` `}
                   {p.seller_contact}
                 </span>
               </div>

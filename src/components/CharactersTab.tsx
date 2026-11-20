@@ -1,4 +1,5 @@
-﻿'use client';
+﻿```tsx
+'use client';
 
 import React, { useState, useMemo } from 'react';
 import {
@@ -70,7 +71,7 @@ export function CharactersTab({
       {/* Header & Post Listing Button */}
       <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-900 border border-slate-800 rounded-xl p-4">
         <p className="text-xs text-slate-400">
-          Community Character Exchange â€” Coordinate character transfers or account
+          Community Character Exchange — Coordinate character transfers or account
           takeovers directly via Discord or Simutronics.
         </p>
 
@@ -85,6 +86,7 @@ export function CharactersTab({
           </button>
         )}
       </div>
+
       {/* Search & Guild Filter */}
       <div className="space-y-3">
         <div className="relative">
@@ -163,6 +165,7 @@ export function CharactersTab({
                   </p>
                 )}
               </div>
+
               {/* Pricing & Seller Controls */}
               <div className="pt-3 border-t border-slate-800 space-y-2.5 text-xs">
                 <div className="flex flex-wrap items-center justify-between gap-2">
@@ -175,7 +178,9 @@ export function CharactersTab({
                       </strong>
                     )}
 
-                    {c.asking_pk != null && c.asking_usd != null && ' / '}
+                    {c.asking_pk != null &&
+                      c.asking_usd != null &&
+                      ' / '}
 
                     {c.asking_usd != null && (
                       <strong className="text-amber-400 font-mono">
@@ -194,7 +199,9 @@ export function CharactersTab({
                         </strong>
                       )}
 
-                      {c.sold_pk != null && c.sold_usd != null && ' / '}
+                      {c.sold_pk != null &&
+                        c.sold_usd != null &&
+                        ' / '}
 
                       {c.sold_usd != null && (
                         <strong className="font-mono">
@@ -205,7 +212,7 @@ export function CharactersTab({
                   )}
                 </div>
 
-                {/* Edit, Mark Sold & Delete â€” Owner Only */}
+                {/* Edit, Mark Sold & Delete — Owner Only */}
                 {userId === c.seller_id && (
                   <div className="inline-flex items-center gap-1.5">
                     {c.status === 'active' && (
@@ -258,7 +265,7 @@ export function CharactersTab({
 
                     {c.seller_discord_id && (
                       <a
-                        href={'https://discord.com' + c.seller_discord_id}
+                        href={`https://discord.com/users/${c.seller_discord_id}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1 bg-indigo-600/20 hover:bg-indigo-600/40 border border-indigo-500/40 text-indigo-300 px-2 py-0.5 rounded text-xs font-medium transition"
