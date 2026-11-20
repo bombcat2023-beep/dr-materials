@@ -1,12 +1,30 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Plus, CheckCircle2, User, MessageSquare, Search } from 'lucide-react';
+import {
+  Plus,
+  CheckCircle2,
+  User,
+  MessageSquare,
+  Search,
+  Trash2,
+} from 'lucide-react';
 import { CharacterListing, fmtNum, fmtUsd } from '@/types/market';
 
 const GUILDS = [
-  'All', 'Barbarian', 'Bard', 'Cleric', 'Commoner', 'Empath', 'Moon Mage',
-  'Necromancer', 'Paladin', 'Ranger', 'Thief', 'Trader', 'Warrior Mage',
+  'All',
+  'Barbarian',
+  'Bard',
+  'Cleric',
+  'Commoner',
+  'Empath',
+  'Moon Mage',
+  'Necromancer',
+  'Paladin',
+  'Ranger',
+  'Thief',
+  'Trader',
+  'Warrior Mage',
 ];
 
 type Props = {
@@ -14,32 +32,45 @@ type Props = {
   userId?: string;
   onListCharacter: () => void;
   onMarkSold: (char: CharacterListing) => void;
+  onDelete: (char: CharacterListing) => void;
 };
 
-export function CharactersTab({ characters, userId, onListCharacter, onMarkSold }: Props) {
+export function CharactersTab({
+  characters,
+  userId,
+  onListCharacter,
+  onMarkSold,
+  onDelete,
+}: Props) {
   const [guildFilter, setGuildFilter] = useState('All');
   const [search, setSearch] = useState('');
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
+
     return characters.filter((c) => {
       const matchesGuild = guildFilter === 'All' || c.guild === guildFilter;
+
       const matchesText =
         !q ||
         (c.character_name || '').toLowerCase().includes(q) ||
         c.guild.toLowerCase().includes(q) ||
         c.race.toLowerCase().includes(q) ||
         (c.highlights || '').toLowerCase().includes(q);
+
       return matchesGuild && matchesText;
     });
   }, [characters, guildFilter, search]);
 
   return (
     <div className="space-y-5">
+      {/* Header & Post Listing Button */}
       <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-900 border border-slate-800 rounded-xl p-4">
         <p className="text-xs text-slate-400">
-          Community Character Exchange — Coordinate character transfers or account takeovers directly via Discord or Simutronics.
+          Community Character Exchange — Coordinate character transfers or account
+          takeovers directly via Discord or Simutronics.
         </p>
+
         {userId && (
           <button
             type="button"
@@ -56,6 +87,7 @@ export function CharactersTab({ characters, userId, onListCharacter, onMarkSold 
       <div className="space-y-3">
         <div className="relative">
           <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+
           <input
             type="text"
             placeholder="Search by guild, race, skills, TDs, or alters..."
@@ -83,6 +115,7 @@ export function CharactersTab({ characters, userId, onListCharacter, onMarkSold 
         </div>
       </div>
 
+      {/* Character Listings */}
       {filtered.length === 0 ? (
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-10 text-center text-sm text-slate-400">
           No character listings match your filter yet.
@@ -94,11 +127,13 @@ export function CharactersTab({ characters, userId, onListCharacter, onMarkSold 
               key={c.id}
               className="bg-slate-900 border border-slate-800 rounded-xl p-5 flex flex-col justify-between gap-4"
             >
+              {/* Character Information */}
               <div>
                 <div className="flex items-center justify-between gap-2 mb-1.5">
                   <span className="text-xs font-semibold uppercase tracking-wider text-amber-400">
                     Circle {c.circle} {c.race} {c.guild}
                   </span>
+
                   <span
                     className={`px-2 py-0.5 rounded text-xs font-medium ${
                       c.status === 'active'
@@ -113,45 +148,102 @@ export function CharactersTab({ characters, userId, onListCharacter, onMarkSold 
                 <h3 className="text-lg font-bold text-slate-100">
                   {c.character_name || 'Unnamed ' + c.guild}
                 </h3>
+
                 <p className="text-xs text-slate-400 mt-0.5">
-                  {c.account_takeover ? 'Full Account Takeover' : 'Character Transfer Only'}
+                  {c.account_takeover
+                    ? 'Full Account Takeover'
+                    : 'Character Transfer Only'}
                 </p>
 
                 {c.highlights && (
-                  <p className="text-sm text-slate-300 mt-3 whitespace-pre-line">{c.highlights}</p>
+                  <p className="text-sm text-slate-300 mt-3 whitespace-pre-line">
+                    {c.highlights}
+                  </p>
                 )}
               </div>
 
+              {/* Pricing & Seller Controls */}
               <div className="pt-3 border-t border-slate-800 space-y-2.5 text-xs">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <span className="text-slate-400">Asking: </span>
-                    {c.asking_pk != null && <strong className="text-amber-400 font-mono">{fmtNum(c.asking_pk)} PK</strong>}
+
+                    {c.asking_pk != null && (
+                      <strong className="text-amber-400 font-mono">
+                        {fmtNum(c.asking_pk)} PK
+                      </strong>
+                    )}
+
                     {c.asking_pk != null && c.asking_usd != null && ' / '}
-                    {c.asking_usd != null && <strong className="text-amber-400 font-mono">{fmtUsd(c.asking_usd)}</strong>}
+
+                    {c.asking_usd != null && (
+                      <strong className="text-amber-400 font-mono">
+                        {fmtUsd(c.asking_usd)}
+                      </strong>
+                    )}
                   </div>
+
                   {c.status === 'sold' && (
                     <div className="text-emerald-400">
                       <span>Sold: </span>
-                      {c.sold_pk != null && <strong className="font-mono">{fmtNum(c.sold_pk)} PK</strong>}
+
+                      {c.sold_pk != null && (
+                        <strong className="font-mono">
+                          {fmtNum(c.sold_pk)} PK
+                        </strong>
+                      )}
+
                       {c.sold_pk != null && c.sold_usd != null && ' / '}
-                      {c.sold_usd != null && <strong className="font-mono">{fmtUsd(c.sold_usd)}</strong>}
+
+                      {c.sold_usd != null && (
+                        <strong className="font-mono">
+                          {fmtUsd(c.sold_usd)}
+                        </strong>
+                      )}
                     </div>
                   )}
                 </div>
 
+                {/* Mark Sold & Delete — Owner Only */}
+                {userId === c.seller_id && (
+                  <div className="inline-flex items-center gap-1.5">
+                    {c.status === 'active' && (
+                      <button
+                        type="button"
+                        onClick={() => onMarkSold(c)}
+                        className="inline-flex items-center gap-1 bg-emerald-600 hover:bg-emerald-500 text-white px-2.5 py-1 rounded text-xs font-medium cursor-pointer"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        Mark Sold
+                      </button>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => onDelete(c)}
+                      className="inline-flex items-center gap-1 bg-red-600/20 hover:bg-red-600/40 border border-red-500/40 text-red-300 px-2 py-1 rounded text-xs font-medium cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      Delete
+                    </button>
+                  </div>
+                )}
+
+                {/* Seller Contact */}
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex flex-wrap items-center gap-2.5 text-slate-300">
                     <span className="inline-flex items-center gap-1">
                       <User className="w-3.5 h-3.5 text-amber-400" />
                       <strong>{c.seller_contact}</strong>
                     </span>
+
                     {c.discord_handle && (
                       <span className="inline-flex items-center gap-1 text-indigo-400">
                         <MessageSquare className="w-3.5 h-3.5" />
                         {c.discord_handle}
                       </span>
                     )}
+
                     {c.seller_discord_id && (
                       <a
                         href={`https://discord.com/users/${c.seller_discord_id}`}
@@ -164,17 +256,6 @@ export function CharactersTab({ characters, userId, onListCharacter, onMarkSold 
                       </a>
                     )}
                   </div>
-
-                  {userId === c.seller_id && c.status === 'active' && (
-                    <button
-                      type="button"
-                      onClick={() => onMarkSold(c)}
-                      className="inline-flex items-center gap-1 bg-emerald-600 hover:bg-emerald-500 text-white px-2.5 py-1 rounded text-xs font-medium cursor-pointer"
-                    >
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      Mark Sold
-                    </button>
-                  )}
                 </div>
               </div>
             </div>

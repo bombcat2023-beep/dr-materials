@@ -9,4 +9,4 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Ping keepalive endpoint
-        run: curl -fsS https://vercel.app
+        run: curl -fsS https://dr-materials.vercel.app

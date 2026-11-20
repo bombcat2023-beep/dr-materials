@@ -321,32 +321,69 @@ export function MarkSoldModal({ listing, onClose, onConfirm }: MarkSoldModalProp
 
   if (!listing) return null;
 
+  const pkVal = kronars ? Number(kronars) : null;
+  const usdVal = usd ? Number(usd) : null;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const kVal = kronars ? Number(kronars) : null;
-    const uVal = usd ? Number(usd) : null;
-    if (kVal == null && uVal == null) return;
-    await onConfirm(kVal, uVal);
+    if (pkVal == null && usdVal == null) return;
+    await onConfirm(pkVal, usdVal);
   };
 
   return (
     <div className="fixed inset-0 bg-black/75 flex items-center justify-center p-4 z-50">
       <form onSubmit={handleSubmit} className="bg-slate-900 border border-slate-700 rounded-xl p-6 w-full max-w-sm space-y-4">
-        <h2 className="text-lg font-bold">Record Final Sold Price / Vol</h2>
-        <p className="text-xs text-slate-400">
-          Enter the final price per volume it sold for in Kronars, $, or both to update the running average.
-        </p>
         <div>
-          <label className="block text-xs text-slate-400 mb-1">Sold Price Per Volume (Kronars)</label>
-          <input type="number" step="any" min="0.01" placeholder="Optional if sold for $" value={kronars} onChange={(e) => setKronars(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm" />
+          <h2 className="text-lg font-bold">Record Final Sold Price / Vol</h2>
+          <p className="text-xs text-slate-400 mt-1">
+            Enter the final price <strong>per volume</strong> ({listing.quantity} vol listed) in <strong>PK</strong>, <strong>$ (USD)</strong>, or both to update the live market average.
+          </p>
         </div>
+
+        <div>
+          <label className="block text-xs text-slate-400 mb-1">Sold Price Per Volume (PK)</label>
+          <input
+            type="number"
+            step="any"
+            min="0.01"
+            placeholder="e.g. 3000 (optional if sold for $)"
+            value={kronars}
+            onChange={(e) => setKronars(e.target.value)}
+            className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm"
+          />
+        </div>
+
         <div>
           <label className="block text-xs text-slate-400 mb-1">Sold Price Per Volume ($ USD)</label>
-          <input type="number" step="any" min="0.01" placeholder="Optional if sold for Kronars" value={usd} onChange={(e) => setUsd(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm" />
+          <input
+            type="number"
+            step="any"
+            min="0.01"
+            placeholder="e.g. 5.00 (optional if sold for PK)"
+            value={usd}
+            onChange={(e) => setUsd(e.target.value)}
+            className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm"
+          />
         </div>
+
+        {(pkVal != null || usdVal != null) && (
+          <div className="bg-slate-950 border border-emerald-500/30 rounded-lg px-3.5 py-2 text-xs flex items-center justify-between">
+            <span className="text-slate-400">Total Sale ({listing.quantity} vol):</span>
+            <span className="font-mono font-bold text-emerald-400">
+              {pkVal != null && `${fmtNum(pkVal * listing.quantity)} PK`}
+              {pkVal != null && usdVal != null && ' / '}
+              {usdVal != null && fmtUsd(usdVal * listing.quantity)}
+            </span>
+          </div>
+        )}
+
         <div className="flex justify-end gap-2 pt-2">
-          <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg text-sm bg-slate-800 hover:bg-slate-700 cursor-pointer">Cancel</button>
-          <button type="submit" className="px-4 py-2 rounded-lg text-sm font-semibold bg-emerald-600 hover:bg-emerald-500 text-white cursor-pointer">Confirm Sold</button>
+          <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg text-sm bg-slate-800 hover:bg-slate-700 cursor-pointer">
+            Cancel
+          </button>
+          <button type="submit" className="px-4 py-2 rounded-lg text-sm font-semibold bg-emerald-600 hover:bg-emerald-500 text-white cursor-pointer">
+            Confirm Sold
+          </button>
         </div>
       </form>
     </div>

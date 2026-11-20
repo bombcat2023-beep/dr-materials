@@ -184,6 +184,12 @@ export default function DRMarketPage() {
             userId={user?.id}
             onListMaterial={(id) => { setQuickMatId(id ?? ''); setShowListMat(true); }}
             onMarkSold={(listing) => setSoldTarget(listing)}
+            onDelete={async (listing) => {
+              if (!window.confirm('Delete this material listing?')) return;
+              const { error } = await supabase.from('material_listings').delete().eq('id', listing.id);
+              if (error) return alert(error.message);
+              await loadAll();
+            }}
           />
         )}
         {activeTab === 'prices' && (
@@ -195,6 +201,12 @@ export default function DRMarketPage() {
             userId={user?.id}
             onListCharacter={() => setShowListChar(true)}
             onMarkSold={(char) => setSoldCharTarget(char)}
+            onDelete={async (char) => {
+              if (!window.confirm('Delete this character listing?')) return;
+              const { error } = await supabase.from('character_listings').delete().eq('id', char.id);
+              if (error) return alert(error.message);
+              await loadAll();
+            }}
           />
         )}
         {activeTab === 'plats' && (
@@ -203,9 +215,16 @@ export default function DRMarketPage() {
             userId={user?.id}
             onListPlat={() => setShowListPlat(true)}
             onMarkSold={(plat) => setSoldPlatTarget(plat)}
+            onDelete={async (plat) => {
+              if (!window.confirm('Delete this PK listing?')) return;
+              const { error } = await supabase.from('plat_listings').delete().eq('id', plat.id);
+              if (error) return alert(error.message);
+              await loadAll();
+            }}
           />
         )}
       </main>
+
 
       <EmailAuthModal
         open={showEmailAuth}
