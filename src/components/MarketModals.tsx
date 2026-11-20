@@ -205,7 +205,7 @@ export function ListMaterialModal({
                     : 'bg-slate-950 text-slate-300 border-slate-800 hover:border-slate-600'
                 }`}
               >
-                {mode === 'USD' ? '$ (USD)' : mode}
+                {mode === 'USD' ? '$ (USD)' : mode === 'Kronars' ? 'PK' : 'Both'}
               </button>
             ))}
           </div>
@@ -341,7 +341,7 @@ export function MarkSoldModal({ listing, onClose, onConfirm }: MarkSoldModalProp
         </div>
 
         <div>
-          <label className="block text-xs text-slate-400 mb-1">Sold Price Per Volume (PK)</label>
+          <label className="block text-xs text-slate-400 mb-1">Price Per Volume (Platinum Kronars / PK)</label>
           <input
             type="number"
             step="any"
