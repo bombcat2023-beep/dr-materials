@@ -2,12 +2,13 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
 import { createClient } from '@/lib/supabase';
-import { Plus, LogIn, LogOut, Package, Users, Mail, TrendingUp, Coins } from 'lucide-react';
+import { Plus, LogIn, LogOut, Package, Users, Mail, TrendingUp, Coins, LayoutList } from 'lucide-react';
 import { MaterialStat, MaterialListing, CharacterListing, PlatListing } from '@/types/market';
 import { MaterialsTab } from '@/components/MaterialsTab';
 import { PriceIndexTab } from '@/components/PriceIndexTab';
 import { CharactersTab } from '@/components/CharactersTab';
 import { PlatsTab } from '@/components/PlatsTab';
+import { MyListingsTab } from '@/components/MyListingsTab';
 import { ListMaterialModal, MarkSoldModal, EmailAuthModal } from '@/components/MarketModals';
 import { ListCharacterModal, MarkCharacterSoldModal } from '@/components/CharacterModals';
 import { ListPlatModal, MarkPlatSoldModal } from '@/components/PlatModals';
@@ -15,7 +16,7 @@ import { ListPlatModal, MarkPlatSoldModal } from '@/components/PlatModals';
 export default function DRMarketPage() {
   const supabase = useMemo(() => createClient(), []);
   const [user, setUser] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<'materials' | 'prices' | 'characters' | 'plats'>('materials');
+  const [activeTab, setActiveTab] = useState<'materials' | 'prices' | 'characters' | 'plats' | 'mine'>('materials');
 
   const [stats, setStats] = useState<MaterialStat[]>([]);
   const [listings, setListings] = useState<MaterialListing[]>([]);
@@ -72,6 +73,12 @@ export default function DRMarketPage() {
 
   const discordIdentity = user?.identities?.find((i: any) => i.provider === 'discord');
   const sellerDiscordId = discordIdentity?.id || user?.user_metadata?.provider_id || null;
+
+  const myActiveCount = user
+    ? listings.filter((l) => l.seller_id === user.id && l.status === 'active').length +
+      characters.filter((c) => c.seller_id === user.id && c.status === 'active').length +
+      plats.filter((p) => p.seller_id === user.id && p.status === 'active').length
+    : 0;
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
       <header className="border-b border-slate-800 bg-slate-900/90 sticky top-0 z-20">
@@ -98,7 +105,7 @@ export default function DRMarketPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={async () => { await supabase.auth.signOut(); setUser(null); }}
+                  onClick={async () => { await supabase.auth.signOut(); setUser(null); if (activeTab === 'mine') setActiveTab('materials'); }}
                   className="inline-flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-2 rounded-lg text-sm cursor-pointer transition"
                 >
                   <LogOut className="w-4 h-4" />
@@ -177,6 +184,20 @@ export default function DRMarketPage() {
             <Coins className="w-4 h-4" />
             Plats for Sale ({plats.filter((p) => p.status === 'active').length})
           </button>
+          {user && (
+            <button
+              type="button"
+              onClick={() => setActiveTab('mine')}
+              className={`py-3 text-sm font-medium border-b-2 inline-flex items-center gap-2 whitespace-nowrap cursor-pointer transition ${
+                activeTab === 'mine'
+                  ? 'border-amber-400 text-amber-400'
+                  : 'border-transparent text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <LayoutList className="w-4 h-4" />
+              My Listings ({myActiveCount})
+            </button>
+          )}
         </div>
       </header>
 
@@ -223,6 +244,42 @@ export default function DRMarketPage() {
             onMarkSold={(plat) => setSoldPlatTarget(plat)}
             onEdit={(plat) => { setEditPlatTarget(plat); setShowListPlat(true); }}
             onDelete={async (plat) => {
+              if (!window.confirm('Delete this PK listing?')) return;
+              const { error } = await supabase.from('plat_listings').delete().eq('id', plat.id);
+              if (error) return alert(error.message);
+              await loadAll();
+            }}
+          />
+        )}
+        {activeTab === 'mine' && user && (
+          <MyListingsTab
+            userId={user.id}
+            stats={stats}
+            listings={listings}
+            characters={characters}
+            plats={plats}
+            onListMaterial={() => { setEditMatTarget(null); setQuickMatId(''); setShowListMat(true); }}
+            onEditMaterial={(listing) => { setEditMatTarget(listing); setShowListMat(true); }}
+            onMarkMaterialSold={(listing) => setSoldTarget(listing)}
+            onDeleteMaterial={async (listing) => {
+              if (!window.confirm('Delete this material listing?')) return;
+              const { error } = await supabase.from('material_listings').delete().eq('id', listing.id);
+              if (error) return alert(error.message);
+              await loadAll();
+            }}
+            onListCharacter={() => { setEditCharTarget(null); setShowListChar(true); }}
+            onEditCharacter={(char) => { setEditCharTarget(char); setShowListChar(true); }}
+            onMarkCharacterSold={(char) => setSoldCharTarget(char)}
+            onDeleteCharacter={async (char) => {
+              if (!window.confirm('Delete this character listing?')) return;
+              const { error } = await supabase.from('character_listings').delete().eq('id', char.id);
+              if (error) return alert(error.message);
+              await loadAll();
+            }}
+            onListPlat={() => { setEditPlatTarget(null); setShowListPlat(true); }}
+            onEditPlat={(plat) => { setEditPlatTarget(plat); setShowListPlat(true); }}
+            onMarkPlatSold={(plat) => setSoldPlatTarget(plat)}
+            onDeletePlat={async (plat) => {
               if (!window.confirm('Delete this PK listing?')) return;
               const { error } = await supabase.from('plat_listings').delete().eq('id', plat.id);
               if (error) return alert(error.message);
