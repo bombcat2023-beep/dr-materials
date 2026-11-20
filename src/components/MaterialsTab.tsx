@@ -65,14 +65,13 @@ export function MaterialsTab({
       ) || null,
     [stats, selectedKey]
   );
-
+ 
   const selectedListings = useMemo(() => {
     if (!selected) return [];
-
     return listings.filter(
       (l) =>
         l.material_id === selected.material_id &&
-        (l.variant || '') === (selected.variant || '')
+        (!selected.variant || (l.variant || '') === selected.variant)
     );
   }, [listings, selected]);
 
