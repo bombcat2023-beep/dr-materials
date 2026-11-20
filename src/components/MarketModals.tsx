@@ -109,7 +109,6 @@ export function ListMaterialModal({
     setQuality('');
     setNotes('');
   };
-
   return (
     <div className="fixed inset-0 bg-black/75 flex items-center justify-center p-4 z-50 overflow-y-auto">
       <form onSubmit={handleSubmit} className="bg-slate-900 border border-slate-700 rounded-xl p-6 w-full max-w-md space-y-3.5 my-8">
@@ -165,6 +164,7 @@ export function ListMaterialModal({
             </select>
           </div>
         )}
+
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-xs text-slate-400 mb-1">Volume</label>
@@ -213,13 +213,13 @@ export function ListMaterialModal({
 
         {(priceMode === 'Kronars' || priceMode === 'Both') && (
           <div>
-            <label className="block text-xs text-slate-400 mb-1">Price Per Volume (Kronars)</label>
+            <label className="block text-xs text-slate-400 mb-1">Price Per Volume (Platinum Kronars / PK)</label>
             <input
               type="number"
               step="any"
               min="0.01"
               required
-              placeholder="e.g. 50000"
+              placeholder="e.g. 3000"
               value={kronars}
               onChange={(e) => setKronars(e.target.value)}
               className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm"
@@ -248,13 +248,12 @@ export function ListMaterialModal({
           <div className="bg-slate-950 border border-amber-500/30 rounded-lg px-3.5 py-2.5 text-xs flex items-center justify-between">
             <span className="text-slate-400">Total Listing Price ({volNum} vol):</span>
             <span className="font-mono font-bold text-amber-400">
-              {kPerVol != null && `${fmtNum(kPerVol * volNum)} Kronars`}
+              {kPerVol != null && fmtNum(kPerVol * volNum) + ' PK'}
               {kPerVol != null && uPerVol != null && ' / '}
               {uPerVol != null && fmtUsd(uPerVol * volNum)}
             </span>
           </div>
         )}
-
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-xs text-slate-400 mb-1">Character / Seller Name</label>
@@ -302,6 +301,7 @@ export function ListMaterialModal({
     </div>
   );
 }
+
 type MarkSoldModalProps = {
   listing: MaterialListing | null;
   onClose: () => void;
@@ -341,7 +341,7 @@ export function MarkSoldModal({ listing, onClose, onConfirm }: MarkSoldModalProp
         </div>
 
         <div>
-          <label className="block text-xs text-slate-400 mb-1">Price Per Volume (Platinum Kronars / PK)</label>
+          <label className="block text-xs text-slate-400 mb-1">Sold Price Per Volume (PK)</label>
           <input
             type="number"
             step="any"
@@ -370,7 +370,7 @@ export function MarkSoldModal({ listing, onClose, onConfirm }: MarkSoldModalProp
           <div className="bg-slate-950 border border-emerald-500/30 rounded-lg px-3.5 py-2 text-xs flex items-center justify-between">
             <span className="text-slate-400">Total Sale ({listing.quantity} vol):</span>
             <span className="font-mono font-bold text-emerald-400">
-              {pkVal != null && `${fmtNum(pkVal * listing.quantity)} PK`}
+              {pkVal != null && fmtNum(pkVal * listing.quantity) + ' PK'}
               {pkVal != null && usdVal != null && ' / '}
               {usdVal != null && fmtUsd(usdVal * listing.quantity)}
             </span>
@@ -452,4 +452,3 @@ export function EmailAuthModal({ open, onClose, onSuccess, supabase }: EmailAuth
     </div>
   );
 }
-
