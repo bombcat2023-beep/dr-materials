@@ -282,7 +282,7 @@ export function ListMaterialModal({
           <label className="block text-xs text-slate-400 mb-1">Notes (optional)</label>
           <input
             type="text"
-            placeholder="e.g. In Crossing bank"
+            placeholder="add useful information here"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm"
