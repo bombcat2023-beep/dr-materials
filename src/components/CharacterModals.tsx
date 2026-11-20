@@ -138,8 +138,8 @@ export function ListCharacterModal({ open, defaultContact, onClose, onSubmit }: 
         </label>
 
         <div>
-          <label className="block text-xs text-slate-400 mb-1">Highlights (skills, TDs, gear, alters)</label>
-          <textarea rows={3} placeholder="e.g. 600+ weaponry/defenses, 50 TDs, altered gear..." value={highlights} onChange={(e) => setHighlights(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm" />
+          <label className="block text-xs text-slate-400 mb-1">Highlights (experience, info, inventory, spells)</label>
+          <textarea rows={3} placeholder="e.g. Experience/Info/Inventory/Spells" value={highlights} onChange={(e) => setHighlights(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm" />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
