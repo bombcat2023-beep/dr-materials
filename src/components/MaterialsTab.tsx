@@ -218,7 +218,7 @@ export function MaterialsTab({
 
         <input
           type="text"
-          placeholder="Search materials or sub-types (e.g., Kertig, Silk Heavy, Blackwater jet Boulder)..."
+          placeholder="Search materials or sub-types (e.g. Heavy Titanese, Lelori Limb, Diamondique Boulder)..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="w-full bg-slate-900 border border-slate-700 rounded-lg pl-9 pr-4 py-2 text-sm text-white focus:outline-none focus:border-amber-400"

@@ -169,17 +169,17 @@ export function ListCharacterModal({ open, defaultContact, editing, onClose, onS
 
         <div>
           <label className="block text-xs text-slate-400 mb-1">Highlights (skills, TDs, gear, alters)</label>
-          <textarea rows={3} placeholder="e.g. 600+ weaponry/defenses, 50 TDs, altered gear..." value={highlights} onChange={(e) => setHighlights(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm" />
+          <textarea rows={3} placeholder="e.g. Experience, Info, Inventory, Spells..." value={highlights} onChange={(e) => setHighlights(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm" />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-xs text-slate-400 mb-1">Seller Name</label>
-            <input type="text" required placeholder="e.g. Kaelen" value={contact} onChange={(e) => setContact(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm" />
+            <input type="text" required placeholder="e.g. Handle" value={contact} onChange={(e) => setContact(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm" />
           </div>
           <div>
             <label className="block text-xs text-slate-400 mb-1">Discord Handle (optional)</label>
-            <input type="text" placeholder="e.g. kaelen_dr" value={discord} onChange={(e) => setDiscord(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm" />
+            <input type="text" placeholder="e.g. Discord Username" value={discord} onChange={(e) => setDiscord(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm" />
           </div>
         </div>
 

@@ -141,7 +141,7 @@ export function ListMaterialModal({
           <label className="block text-xs text-slate-400">Search &amp; Select Material</label>
           <input
             type="text"
-            placeholder="Type to filter materials (e.g. Kertig, Silk, Yew)..."
+            placeholder="Type to filter materials (e.g. Kertig, Felstone, Lelori)..."
             value={matSearch}
             onChange={(e) => {
               setMatSearch(e.target.value);
@@ -283,7 +283,7 @@ export function ListMaterialModal({
             <input
               type="text"
               required
-              placeholder="e.g. Kaelen"
+              placeholder="e.g. Handle"
               value={contact}
               onChange={(e) => setContact(e.target.value)}
               className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm"
@@ -293,7 +293,7 @@ export function ListMaterialModal({
             <label className="block text-xs text-slate-400 mb-1">Discord Handle (optional)</label>
             <input
               type="text"
-              placeholder="e.g. kaelen_dr"
+              placeholder="e.g. Discord Username"
               value={discord}
               onChange={(e) => setDiscord(e.target.value)}
               className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm"
@@ -305,7 +305,7 @@ export function ListMaterialModal({
           <label className="block text-xs text-slate-400 mb-1">Notes (optional)</label>
           <input
             type="text"
-            placeholder="e.g. In Crossing bank"
+            placeholder="e.g. Any Useful Additional Information"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm"
