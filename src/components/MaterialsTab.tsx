@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo } from 'react';
@@ -9,6 +8,7 @@ import {
   User,
   MessageSquare,
   Trash2,
+  Pencil,
 } from 'lucide-react';
 import { MaterialStat, MaterialListing, fmtNum, fmtUsd } from '@/types/market';
 
@@ -18,6 +18,7 @@ type Props = {
   userId?: string;
   onListMaterial: (materialId?: number) => void;
   onMarkSold: (listing: MaterialListing) => void;
+  onEdit: (listing: MaterialListing) => void;
   onDelete: (listing: MaterialListing) => void;
 };
 
@@ -27,6 +28,7 @@ export function MaterialsTab({
   userId,
   onListMaterial,
   onMarkSold,
+  onEdit,
   onDelete,
 }: Props) {
   const [search, setSearch] = useState('');
@@ -176,6 +178,15 @@ export function MaterialsTab({
                     <div className="inline-flex items-center gap-1.5">
                       <button
                         type="button"
+                        onClick={() => onEdit(l)}
+                        className="inline-flex items-center gap-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 px-2 py-1 rounded text-xs font-medium cursor-pointer"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                        Edit
+                      </button>
+
+                      <button
+                        type="button"
                         onClick={() => onMarkSold(l)}
                         className="inline-flex items-center gap-1 bg-emerald-600 hover:bg-emerald-500 text-white px-2.5 py-1 rounded text-xs font-medium cursor-pointer"
                       >
@@ -303,7 +314,9 @@ export function MaterialsTab({
                       {l.listed_kronars != null && (
                         <strong>{fmtNum(l.listed_kronars)} PK/vol</strong>
                       )}
-                      {l.listed_kronars != null && l.listed_usd != null && ' / '}
+                      {l.listed_kronars != null &&
+                        l.listed_usd != null &&
+                        ' / '}
                       {l.listed_usd != null && (
                         <strong>{fmtUsd(l.listed_usd)}/vol</strong>
                       )}
@@ -315,7 +328,9 @@ export function MaterialsTab({
                         {l.sold_kronars != null && (
                           <strong>{fmtNum(l.sold_kronars)} PK/vol</strong>
                         )}
-                        {l.sold_kronars != null && l.sold_usd != null && ' / '}
+                        {l.sold_kronars != null &&
+                          l.sold_usd != null &&
+                          ' / '}
                         {l.sold_usd != null && (
                           <strong>{fmtUsd(l.sold_usd)}/vol</strong>
                         )}
@@ -347,14 +362,25 @@ export function MaterialsTab({
                     )}
 
                     {userId === l.seller_id && l.status === 'active' && (
-                      <button
-                        type="button"
-                        onClick={() => onMarkSold(l)}
-                        className="inline-flex items-center gap-1 bg-emerald-600 hover:bg-emerald-500 text-white px-2.5 py-1 rounded text-xs font-medium cursor-pointer"
-                      >
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        Mark Sold
-                      </button>
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => onEdit(l)}
+                          className="inline-flex items-center gap-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 px-2 py-1 rounded text-xs font-medium cursor-pointer"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                          Edit
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => onMarkSold(l)}
+                          className="inline-flex items-center gap-1 bg-emerald-600 hover:bg-emerald-500 text-white px-2.5 py-1 rounded text-xs font-medium cursor-pointer"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          Mark Sold
+                        </button>
+                      </>
                     )}
 
                     {userId === l.seller_id && (

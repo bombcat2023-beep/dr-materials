@@ -8,6 +8,7 @@ import {
   MessageSquare,
   Search,
   Trash2,
+  Pencil,
 } from 'lucide-react';
 import { CharacterListing, fmtNum, fmtUsd } from '@/types/market';
 
@@ -32,6 +33,7 @@ type Props = {
   userId?: string;
   onListCharacter: () => void;
   onMarkSold: (char: CharacterListing) => void;
+  onEdit: (char: CharacterListing) => void;
   onDelete: (char: CharacterListing) => void;
 };
 
@@ -40,6 +42,7 @@ export function CharactersTab({
   userId,
   onListCharacter,
   onMarkSold,
+  onEdit,
   onDelete,
 }: Props) {
   const [guildFilter, setGuildFilter] = useState('All');
@@ -82,7 +85,6 @@ export function CharactersTab({
           </button>
         )}
       </div>
-
       {/* Search & Guild Filter */}
       <div className="space-y-3">
         <div className="relative">
@@ -161,7 +163,6 @@ export function CharactersTab({
                   </p>
                 )}
               </div>
-
               {/* Pricing & Seller Controls */}
               <div className="pt-3 border-t border-slate-800 space-y-2.5 text-xs">
                 <div className="flex flex-wrap items-center justify-between gap-2">
@@ -204,18 +205,29 @@ export function CharactersTab({
                   )}
                 </div>
 
-                {/* Mark Sold & Delete — Owner Only */}
+                {/* Edit, Mark Sold & Delete — Owner Only */}
                 {userId === c.seller_id && (
                   <div className="inline-flex items-center gap-1.5">
                     {c.status === 'active' && (
-                      <button
-                        type="button"
-                        onClick={() => onMarkSold(c)}
-                        className="inline-flex items-center gap-1 bg-emerald-600 hover:bg-emerald-500 text-white px-2.5 py-1 rounded text-xs font-medium cursor-pointer"
-                      >
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        Mark Sold
-                      </button>
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => onEdit(c)}
+                          className="inline-flex items-center gap-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 px-2 py-1 rounded text-xs font-medium cursor-pointer"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                          Edit
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => onMarkSold(c)}
+                          className="inline-flex items-center gap-1 bg-emerald-600 hover:bg-emerald-500 text-white px-2.5 py-1 rounded text-xs font-medium cursor-pointer"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          Mark Sold
+                        </button>
+                      </>
                     )}
 
                     <button
@@ -246,7 +258,7 @@ export function CharactersTab({
 
                     {c.seller_discord_id && (
                       <a
-                        href={`https://discord.com/users/${c.seller_discord_id}`}
+                        href={'https://discord.com' + c.seller_discord_id}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1 bg-indigo-600/20 hover:bg-indigo-600/40 border border-indigo-500/40 text-indigo-300 px-2 py-0.5 rounded text-xs font-medium transition"

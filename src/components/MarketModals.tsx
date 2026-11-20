@@ -8,6 +8,7 @@ type ListMaterialModalProps = {
   stats: MaterialStat[];
   initialMatId: number | '';
   defaultContact: string;
+  editing?: MaterialListing | null;
   onClose: () => void;
   onSubmit: (payload: {
     material_id: number;
@@ -25,7 +26,7 @@ type ListMaterialModalProps = {
 };
 
 export function ListMaterialModal({
-  open, stats, initialMatId, defaultContact, onClose, onSubmit,
+  open, stats, initialMatId, defaultContact, editing, onClose, onSubmit,
 }: ListMaterialModalProps) {
   const [matSearch, setMatSearch] = useState('');
   const [matId, setMatId] = useState<number | ''>(initialMatId);
@@ -39,7 +40,6 @@ export function ListMaterialModal({
   const [discord, setDiscord] = useState('');
   const [notes, setNotes] = useState('');
 
-  // Deduplicate base materials by material_id
   const uniqueMaterials = useMemo(() => {
     const map = new Map<number, MaterialStat>();
     stats.forEach((s) => { if (!map.has(s.material_id)) map.set(s.material_id, s); });
@@ -64,11 +64,37 @@ export function ListMaterialModal({
   const subtypeChoices = selectedMat ? SUBTYPE_OPTIONS[selectedMat.subcategory] || null : null;
 
   useEffect(() => {
-    setMatId(initialMatId);
-    setMatSearch('');
-  }, [initialMatId]);
+    if (editing) {
+      setMatId(editing.material_id);
+      setMatSearch('');
+      setVariant(editing.variant || '');
+      setQty(String(editing.quantity));
+      setQuality(editing.quality != null ? String(editing.quality) : '');
+      const mode =
+        editing.listed_kronars != null && editing.listed_usd != null
+          ? 'Both'
+          : editing.listed_usd != null
+          ? 'USD'
+          : 'Kronars';
+      setPriceMode(mode);
+      setKronars(editing.listed_kronars != null ? String(editing.listed_kronars) : '');
+      setUsd(editing.listed_usd != null ? String(editing.listed_usd) : '');
+      setContact(editing.seller_contact);
+      setDiscord(editing.discord_handle || '');
+      setNotes(editing.notes || '');
+    } else {
+      setMatId(initialMatId);
+      setMatSearch('');
+      setQty('1');
+      setQuality('');
+      setKronars('');
+      setUsd('');
+      setNotes('');
+    }
+  }, [editing, initialMatId, open]);
 
   useEffect(() => {
+    if (editing && editing.material_id === Number(matId) && editing.variant) return;
     if (subtypeChoices && subtypeChoices.length > 0) {
       setVariant(subtypeChoices[0]);
     } else {
@@ -77,7 +103,7 @@ export function ListMaterialModal({
   }, [matId]);
 
   useEffect(() => {
-    if (defaultContact && !contact) setContact(defaultContact);
+    if (defaultContact && !contact && !editing) setContact(defaultContact);
   }, [defaultContact]);
 
   if (!open) return null;
@@ -104,15 +130,11 @@ export function ListMaterialModal({
       discord_handle: discord.trim() || null,
       notes: notes.trim() || null,
     });
-    setKronars('');
-    setUsd('');
-    setQuality('');
-    setNotes('');
   };
   return (
     <div className="fixed inset-0 bg-black/75 flex items-center justify-center p-4 z-50 overflow-y-auto">
       <form onSubmit={handleSubmit} className="bg-slate-900 border border-slate-700 rounded-xl p-6 w-full max-w-md space-y-3.5 my-8">
-        <h2 className="text-lg font-bold">List Material for Sale</h2>
+        <h2 className="text-lg font-bold">{editing ? 'Edit Material Listing' : 'List Material for Sale'}</h2>
 
         {/* Searchable Material Picker */}
         <div className="space-y-1.5">
@@ -213,7 +235,7 @@ export function ListMaterialModal({
 
         {(priceMode === 'Kronars' || priceMode === 'Both') && (
           <div>
-            <label className="block text-xs text-slate-400 mb-1">Price Per Volume (Platinum Kronars / PK)</label>
+            <label className="block text-xs text-slate-400 mb-1">Price Per Volume (PK)</label>
             <input
               type="number"
               step="any"
@@ -254,6 +276,7 @@ export function ListMaterialModal({
             </span>
           </div>
         )}
+
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-xs text-slate-400 mb-1">Character / Seller Name</label>
@@ -282,7 +305,7 @@ export function ListMaterialModal({
           <label className="block text-xs text-slate-400 mb-1">Notes (optional)</label>
           <input
             type="text"
-            placeholder="add useful information here"
+            placeholder="e.g. In Crossing bank"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm"
@@ -294,14 +317,13 @@ export function ListMaterialModal({
             Cancel
           </button>
           <button type="submit" className="px-4 py-2 rounded-lg text-sm font-semibold bg-amber-500 hover:bg-amber-400 text-slate-950 cursor-pointer">
-            Post Listing
+            {editing ? 'Save Changes' : 'Post Listing'}
           </button>
         </div>
       </form>
     </div>
   );
 }
-
 type MarkSoldModalProps = {
   listing: MaterialListing | null;
   onClose: () => void;

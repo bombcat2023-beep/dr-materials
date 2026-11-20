@@ -11,6 +11,7 @@ const GUILDS = [
 type ListCharacterModalProps = {
   open: boolean;
   defaultContact: string;
+  editing?: CharacterListing | null;
   onClose: () => void;
   onSubmit: (payload: {
     character_name: string | null;
@@ -26,7 +27,7 @@ type ListCharacterModalProps = {
   }) => Promise<void>;
 };
 
-export function ListCharacterModal({ open, defaultContact, onClose, onSubmit }: ListCharacterModalProps) {
+export function ListCharacterModal({ open, defaultContact, editing, onClose, onSubmit }: ListCharacterModalProps) {
   const [name, setName] = useState('');
   const [guild, setGuild] = useState('Warrior Mage');
   const [race, setRace] = useState('Human');
@@ -40,7 +41,40 @@ export function ListCharacterModal({ open, defaultContact, onClose, onSubmit }: 
   const [discord, setDiscord] = useState('');
 
   useEffect(() => {
-    if (defaultContact && !contact) setContact(defaultContact);
+    if (editing) {
+      setName(editing.character_name || '');
+      setGuild(editing.guild);
+      setRace(editing.race);
+      setCircle(String(editing.circle));
+      const mode =
+        editing.asking_pk != null && editing.asking_usd != null
+          ? 'Both'
+          : editing.asking_pk != null
+          ? 'PK'
+          : 'USD';
+      setPriceMode(mode);
+      setPk(editing.asking_pk != null ? String(editing.asking_pk) : '');
+      setUsd(editing.asking_usd != null ? String(editing.asking_usd) : '');
+      setTakeover(editing.account_takeover);
+      setHighlights(editing.highlights || '');
+      setContact(editing.seller_contact);
+      setDiscord(editing.discord_handle || '');
+    } else {
+      setName('');
+      setGuild('Warrior Mage');
+      setRace('Human');
+      setCircle('100');
+      setPk('');
+      setUsd('');
+      setTakeover(true);
+      setHighlights('');
+      if (defaultContact) setContact(defaultContact);
+      setDiscord('');
+    }
+  }, [editing, open]);
+
+  useEffect(() => {
+    if (defaultContact && !contact && !editing) setContact(defaultContact);
   }, [defaultContact]);
 
   if (!open) return null;
@@ -64,16 +98,11 @@ export function ListCharacterModal({ open, defaultContact, onClose, onSubmit }: 
       seller_contact: contact.trim(),
       discord_handle: discord.trim() || null,
     });
-    setName('');
-    setPk('');
-    setUsd('');
-    setHighlights('');
   };
-
   return (
     <div className="fixed inset-0 bg-black/75 flex items-center justify-center p-4 z-50 overflow-y-auto">
       <form onSubmit={handleSubmit} className="bg-slate-900 border border-slate-700 rounded-xl p-6 w-full max-w-md space-y-3.5 my-8">
-        <h2 className="text-lg font-bold">List Character for Sale</h2>
+        <h2 className="text-lg font-bold">{editing ? 'Edit Character Listing' : 'List Character for Sale'}</h2>
 
         <div className="grid grid-cols-2 gap-3">
           <div>
@@ -98,6 +127,7 @@ export function ListCharacterModal({ open, defaultContact, onClose, onSubmit }: 
             <input type="text" required value={race} onChange={(e) => setRace(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm" />
           </div>
         </div>
+
         <div>
           <label className="block text-xs text-slate-400 mb-1">Asking Price In</label>
           <div className="grid grid-cols-3 gap-2">
@@ -138,8 +168,8 @@ export function ListCharacterModal({ open, defaultContact, onClose, onSubmit }: 
         </label>
 
         <div>
-          <label className="block text-xs text-slate-400 mb-1">Highlights (experience, info, inventory, spells)</label>
-          <textarea rows={3} placeholder="e.g. Experience/Info/Inventory/Spells" value={highlights} onChange={(e) => setHighlights(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm" />
+          <label className="block text-xs text-slate-400 mb-1">Highlights (skills, TDs, gear, alters)</label>
+          <textarea rows={3} placeholder="e.g. 600+ weaponry/defenses, 50 TDs, altered gear..." value={highlights} onChange={(e) => setHighlights(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm" />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
@@ -155,7 +185,9 @@ export function ListCharacterModal({ open, defaultContact, onClose, onSubmit }: 
 
         <div className="flex justify-end gap-2 pt-2">
           <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg text-sm bg-slate-800 hover:bg-slate-700 cursor-pointer">Cancel</button>
-          <button type="submit" className="px-4 py-2 rounded-lg text-sm font-semibold bg-amber-500 hover:bg-amber-400 text-slate-950 cursor-pointer">Post Character</button>
+          <button type="submit" className="px-4 py-2 rounded-lg text-sm font-semibold bg-amber-500 hover:bg-amber-400 text-slate-950 cursor-pointer">
+            {editing ? 'Save Changes' : 'Post Character'}
+          </button>
         </div>
       </form>
     </div>
@@ -212,4 +244,3 @@ export function MarkCharacterSoldModal({ character, onClose, onConfirm }: MarkCh
     </div>
   );
 }
-

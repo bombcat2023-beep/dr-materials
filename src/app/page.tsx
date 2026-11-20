@@ -27,6 +27,10 @@ export default function DRMarketPage() {
   const [showListPlat, setShowListPlat] = useState(false);
   const [showEmailAuth, setShowEmailAuth] = useState(false);
 
+  const [editMatTarget, setEditMatTarget] = useState<MaterialListing | null>(null);
+  const [editCharTarget, setEditCharTarget] = useState<CharacterListing | null>(null);
+  const [editPlatTarget, setEditPlatTarget] = useState<PlatListing | null>(null);
+
   const [quickMatId, setQuickMatId] = useState<number | ''>('');
   const [soldTarget, setSoldTarget] = useState<MaterialListing | null>(null);
   const [soldCharTarget, setSoldCharTarget] = useState<CharacterListing | null>(null);
@@ -86,7 +90,7 @@ export default function DRMarketPage() {
               <>
                 <button
                   type="button"
-                  onClick={() => { setQuickMatId(''); setShowListMat(true); }}
+                  onClick={() => { setEditMatTarget(null); setQuickMatId(''); setShowListMat(true); }}
                   className="inline-flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold px-3.5 py-2 rounded-lg text-sm cursor-pointer transition"
                 >
                   <Plus className="w-4 h-4" />
@@ -182,8 +186,9 @@ export default function DRMarketPage() {
             stats={stats}
             listings={listings}
             userId={user?.id}
-            onListMaterial={(id) => { setQuickMatId(id ?? ''); setShowListMat(true); }}
+            onListMaterial={(id) => { setEditMatTarget(null); setQuickMatId(id ?? ''); setShowListMat(true); }}
             onMarkSold={(listing) => setSoldTarget(listing)}
+            onEdit={(listing) => { setEditMatTarget(listing); setShowListMat(true); }}
             onDelete={async (listing) => {
               if (!window.confirm('Delete this material listing?')) return;
               const { error } = await supabase.from('material_listings').delete().eq('id', listing.id);
@@ -199,8 +204,9 @@ export default function DRMarketPage() {
           <CharactersTab
             characters={characters}
             userId={user?.id}
-            onListCharacter={() => setShowListChar(true)}
+            onListCharacter={() => { setEditCharTarget(null); setShowListChar(true); }}
             onMarkSold={(char) => setSoldCharTarget(char)}
+            onEdit={(char) => { setEditCharTarget(char); setShowListChar(true); }}
             onDelete={async (char) => {
               if (!window.confirm('Delete this character listing?')) return;
               const { error } = await supabase.from('character_listings').delete().eq('id', char.id);
@@ -213,8 +219,9 @@ export default function DRMarketPage() {
           <PlatsTab
             plats={plats}
             userId={user?.id}
-            onListPlat={() => setShowListPlat(true)}
+            onListPlat={() => { setEditPlatTarget(null); setShowListPlat(true); }}
             onMarkSold={(plat) => setSoldPlatTarget(plat)}
+            onEdit={(plat) => { setEditPlatTarget(plat); setShowListPlat(true); }}
             onDelete={async (plat) => {
               if (!window.confirm('Delete this PK listing?')) return;
               const { error } = await supabase.from('plat_listings').delete().eq('id', plat.id);
@@ -224,8 +231,6 @@ export default function DRMarketPage() {
           />
         )}
       </main>
-
-
       <EmailAuthModal
         open={showEmailAuth}
         supabase={supabase}
@@ -238,13 +243,15 @@ export default function DRMarketPage() {
         stats={stats}
         initialMatId={quickMatId}
         defaultContact={defaultContact}
-        onClose={() => setShowListMat(false)}
+        editing={editMatTarget}
+        onClose={() => { setShowListMat(false); setEditMatTarget(null); }}
         onSubmit={async (payload) => {
-          const { error } = await supabase
-            .from('material_listings')
-            .insert({ seller_id: user.id, seller_discord_id: sellerDiscordId, ...payload });
+          const { error } = editMatTarget
+            ? await supabase.from('material_listings').update(payload).eq('id', editMatTarget.id)
+            : await supabase.from('material_listings').insert({ seller_id: user.id, seller_discord_id: sellerDiscordId, ...payload });
           if (error) return alert(error.message);
           setShowListMat(false);
+          setEditMatTarget(null);
           await loadAll();
         }}
       />
@@ -272,13 +279,15 @@ export default function DRMarketPage() {
       <ListCharacterModal
         open={showListChar}
         defaultContact={defaultContact}
-        onClose={() => setShowListChar(false)}
+        editing={editCharTarget}
+        onClose={() => { setShowListChar(false); setEditCharTarget(null); }}
         onSubmit={async (payload) => {
-          const { error } = await supabase
-            .from('character_listings')
-            .insert({ seller_id: user.id, seller_discord_id: sellerDiscordId, ...payload });
+          const { error } = editCharTarget
+            ? await supabase.from('character_listings').update(payload).eq('id', editCharTarget.id)
+            : await supabase.from('character_listings').insert({ seller_id: user.id, seller_discord_id: sellerDiscordId, ...payload });
           if (error) return alert(error.message);
           setShowListChar(false);
+          setEditCharTarget(null);
           await loadAll();
         }}
       />
@@ -305,13 +314,15 @@ export default function DRMarketPage() {
       <ListPlatModal
         open={showListPlat}
         defaultContact={defaultContact}
-        onClose={() => setShowListPlat(false)}
+        editing={editPlatTarget}
+        onClose={() => { setShowListPlat(false); setEditPlatTarget(null); }}
         onSubmit={async (payload) => {
-          const { error } = await supabase
-            .from('plat_listings')
-            .insert({ seller_id: user.id, seller_discord_id: sellerDiscordId, ...payload });
+          const { error } = editPlatTarget
+            ? await supabase.from('plat_listings').update(payload).eq('id', editPlatTarget.id)
+            : await supabase.from('plat_listings').insert({ seller_id: user.id, seller_discord_id: sellerDiscordId, ...payload });
           if (error) return alert(error.message);
           setShowListPlat(false);
+          setEditPlatTarget(null);
           await loadAll();
         }}
       />

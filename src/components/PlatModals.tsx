@@ -6,6 +6,7 @@ import { PlatListing, fmtUsd } from '@/types/market';
 type ListPlatModalProps = {
   open: boolean;
   defaultContact: string;
+  editing?: PlatListing | null;
   onClose: () => void;
   onSubmit: (payload: {
     pk_amount: number;
@@ -16,7 +17,7 @@ type ListPlatModalProps = {
   }) => Promise<void>;
 };
 
-export function ListPlatModal({ open, defaultContact, onClose, onSubmit }: ListPlatModalProps) {
+export function ListPlatModal({ open, defaultContact, editing, onClose, onSubmit }: ListPlatModalProps) {
   const [pkAmount, setPkAmount] = useState('10000');
   const [ratePer1k, setRatePer1k] = useState('');
   const [notes, setNotes] = useState('');
@@ -24,7 +25,23 @@ export function ListPlatModal({ open, defaultContact, onClose, onSubmit }: ListP
   const [discord, setDiscord] = useState('');
 
   useEffect(() => {
-    if (defaultContact && !contact) setContact(defaultContact);
+    if (editing) {
+      setPkAmount(String(editing.pk_amount));
+      setRatePer1k(String(editing.usd_per_1k));
+      setNotes(editing.notes || '');
+      setContact(editing.seller_contact);
+      setDiscord(editing.discord_handle || '');
+    } else {
+      setPkAmount('10000');
+      setRatePer1k('');
+      setNotes('');
+      if (defaultContact) setContact(defaultContact);
+      setDiscord('');
+    }
+  }, [editing, open]);
+
+  useEffect(() => {
+    if (defaultContact && !contact && !editing) setContact(defaultContact);
   }, [defaultContact]);
 
   if (!open) return null;
@@ -44,14 +61,12 @@ export function ListPlatModal({ open, defaultContact, onClose, onSubmit }: ListP
       seller_contact: contact.trim(),
       discord_handle: discord.trim() || null,
     });
-    setRatePer1k('');
-    setNotes('');
   };
 
   return (
     <div className="fixed inset-0 bg-black/75 flex items-center justify-center p-4 z-50">
       <form onSubmit={handleSubmit} className="bg-slate-900 border border-slate-700 rounded-xl p-6 w-full max-w-md space-y-4">
-        <h2 className="text-lg font-bold">List Platinum Kronars (PK) for Sale</h2>
+        <h2 className="text-lg font-bold">{editing ? 'Edit PK Listing' : 'List Platinum Kronars (PK) for Sale'}</h2>
 
         <div className="grid grid-cols-2 gap-3">
           <div>
@@ -74,7 +89,7 @@ export function ListPlatModal({ open, defaultContact, onClose, onSubmit }: ListP
               step="any"
               min="0.01"
               required
-              placeholder="e.g. 0.85"
+              placeholder="e.g. 2.50"
               value={ratePer1k}
               onChange={(e) => setRatePer1k(e.target.value)}
               className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm"
@@ -95,7 +110,7 @@ export function ListPlatModal({ open, defaultContact, onClose, onSubmit }: ListP
             <input
               type="text"
               required
-              placeholder="e.g. Seller's Handle"
+              placeholder="e.g. Kaelen"
               value={contact}
               onChange={(e) => setContact(e.target.value)}
               className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm"
@@ -105,7 +120,7 @@ export function ListPlatModal({ open, defaultContact, onClose, onSubmit }: ListP
             <label className="block text-xs text-slate-400 mb-1">Discord Handle (optional)</label>
             <input
               type="text"
-              placeholder="e.g. Discord Display Name"
+              placeholder="e.g. kaelen_dr"
               value={discord}
               onChange={(e) => setDiscord(e.target.value)}
               className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm"
@@ -117,7 +132,7 @@ export function ListPlatModal({ open, defaultContact, onClose, onSubmit }: ListP
           <label className="block text-xs text-slate-400 mb-1">Notes (optional)</label>
           <input
             type="text"
-            placeholder="e.g. PayPal F&F/Venmo/Gift of Adventure"
+            placeholder="e.g. PayPal F&F / Venmo, Crossing bank"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm"
@@ -129,7 +144,7 @@ export function ListPlatModal({ open, defaultContact, onClose, onSubmit }: ListP
             Cancel
           </button>
           <button type="submit" className="px-4 py-2 rounded-lg text-sm font-semibold bg-amber-500 hover:bg-amber-400 text-slate-950 cursor-pointer">
-            Post PK Listing
+            {editing ? 'Save Changes' : 'Post PK Listing'}
           </button>
         </div>
       </form>
