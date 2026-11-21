@@ -30,6 +30,23 @@ export type MaterialListing = {
   created_at: string;
 };
 
+export type MaterialSale = {
+  id: string;
+  listing_id: string | null;
+  seller_id: string;
+  seller_handle: string;
+  material_id: number;
+  material_name: string;
+  variant: string | null;
+  quality: number | null;
+  quantity_sold: number;
+  sold_kronars: number | null;
+  sold_usd: number | null;
+  total_kronars: number | null;
+  total_usd: number | null;
+  sold_at: string;
+};
+
 export type CharacterListing = {
   id: string;
   seller_id: string;

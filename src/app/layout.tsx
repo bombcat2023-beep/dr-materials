@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "DragonRealms Trade & Price Index",
+  title: "Dragonrealms Trade & Price Index",
   description: "Community crafting material listings, running price averages, and character sales for DragonRealms",
   other: {
     "darkreader-lock": "",

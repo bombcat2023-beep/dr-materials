@@ -327,15 +327,21 @@ export function ListMaterialModal({
 type MarkSoldModalProps = {
   listing: MaterialListing | null;
   onClose: () => void;
-  onConfirm: (soldKronars: number | null, soldUsd: number | null) => Promise<void>;
+  onConfirm: (
+    quantitySold: number,
+    soldKronars: number | null,
+    soldUsd: number | null
+  ) => Promise<void>;
 };
 
 export function MarkSoldModal({ listing, onClose, onConfirm }: MarkSoldModalProps) {
+  const [quantitySold, setQuantitySold] = useState('');
   const [kronars, setKronars] = useState('');
   const [usd, setUsd] = useState('');
 
   useEffect(() => {
     if (listing) {
+      setQuantitySold(String(listing.quantity));
       setKronars(listing.listed_kronars != null ? String(listing.listed_kronars) : '');
       setUsd(listing.listed_usd != null ? String(listing.listed_usd) : '');
     }
@@ -345,11 +351,23 @@ export function MarkSoldModal({ listing, onClose, onConfirm }: MarkSoldModalProp
 
   const pkVal = kronars ? Number(kronars) : null;
   const usdVal = usd ? Number(usd) : null;
+  const qtyVal = quantitySold ? Number(quantitySold) : null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (
+      qtyVal == null ||
+      !Number.isInteger(qtyVal) ||
+      qtyVal < 1 ||
+      qtyVal > listing.quantity
+    ) {
+      return;
+    }
+
     if (pkVal == null && usdVal == null) return;
-    await onConfirm(pkVal, usdVal);
+
+    await onConfirm(qtyVal, pkVal, usdVal);
   };
 
   return (
@@ -361,7 +379,22 @@ export function MarkSoldModal({ listing, onClose, onConfirm }: MarkSoldModalProp
             Enter the final price <strong>per volume</strong> ({listing.quantity} vol listed) in <strong>PK</strong>, <strong>$ (USD)</strong>, or both to update the live market average.
           </p>
         </div>
-
+        <div>
+          <label className="block text-xs text-slate-400 mb-1">Quantity Sold</label>
+          <input
+            type="number"
+            step="1"
+            min="1"
+            max={listing.quantity}
+            required
+            value={quantitySold}
+            onChange={(e) => setQuantitySold(e.target.value)}
+            className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm"
+          />
+          <p className="text-xs text-slate-500 mt-1">
+            Maximum available: {listing.quantity}
+          </p>
+        </div>
         <div>
           <label className="block text-xs text-slate-400 mb-1">Sold Price Per Volume (PK)</label>
           <input
@@ -388,13 +421,13 @@ export function MarkSoldModal({ listing, onClose, onConfirm }: MarkSoldModalProp
           />
         </div>
 
-        {(pkVal != null || usdVal != null) && (
+        {qtyVal != null && qtyVal > 0 && (pkVal != null || usdVal != null) && (
           <div className="bg-slate-950 border border-emerald-500/30 rounded-lg px-3.5 py-2 text-xs flex items-center justify-between">
-            <span className="text-slate-400">Total Sale ({listing.quantity} vol):</span>
+            <span className="text-slate-400">Total Sale ({qtyVal} vol):</span>
             <span className="font-mono font-bold text-emerald-400">
-              {pkVal != null && fmtNum(pkVal * listing.quantity) + ' PK'}
+              {pkVal != null && fmtNum(pkVal * qtyVal) + ' PK'}
               {pkVal != null && usdVal != null && ' / '}
-              {usdVal != null && fmtUsd(usdVal * listing.quantity)}
+              {usdVal != null && fmtUsd(usdVal * qtyVal)}
             </span>
           </div>
         )}

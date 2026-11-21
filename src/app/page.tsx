@@ -3,9 +3,10 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { createClient } from '@/lib/supabase';
 import { Plus, LogIn, LogOut, Package, Users, Mail, TrendingUp, Coins, LayoutList } from 'lucide-react';
-import { MaterialStat, MaterialListing, CharacterListing, PlatListing } from '@/types/market';
+import { MaterialStat, MaterialListing, MaterialSale, CharacterListing, PlatListing } from '@/types/market';
 import { MaterialsTab } from '@/components/MaterialsTab';
 import { PriceIndexTab } from '@/components/PriceIndexTab';
+import { SalesHistoryTab } from '@/components/SalesHistoryTab';
 import { CharactersTab } from '@/components/CharactersTab';
 import { PlatsTab } from '@/components/PlatsTab';
 import { MyListingsTab } from '@/components/MyListingsTab';
@@ -16,10 +17,11 @@ import { ListPlatModal, MarkPlatSoldModal } from '@/components/PlatModals';
 export default function DRMarketPage() {
   const supabase = useMemo(() => createClient(), []);
   const [user, setUser] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<'materials' | 'prices' | 'characters' | 'plats' | 'mine'>('materials');
+  const [activeTab, setActiveTab] = useState<'materials' | 'sales' | 'prices' | 'characters' | 'plats' | 'mine'>('materials');
 
   const [stats, setStats] = useState<MaterialStat[]>([]);
   const [listings, setListings] = useState<MaterialListing[]>([]);
+  const [salesHistory, setSalesHistory] = useState<MaterialSale[]>([]);
   const [characters, setCharacters] = useState<CharacterListing[]>([]);
   const [plats, setPlats] = useState<PlatListing[]>([]);
 
@@ -39,14 +41,23 @@ export default function DRMarketPage() {
   const [mounted, setMounted] = useState(false);
 
   const loadAll = async () => {
-    const [{ data: s }, { data: l }, { data: c }, { data: p }] = await Promise.all([
+    const [
+      { data: s },
+      { data: l },
+      { data: h },
+      { data: c },
+      { data: p },
+    ] = await Promise.all([
       supabase.from('material_price_stats').select('*').order('name'),
       supabase.from('material_listings').select('*').order('created_at', { ascending: false }),
+      supabase.from('material_sales').select('*').order('sold_at', { ascending: false }),
       supabase.from('character_listings').select('*').order('created_at', { ascending: false }),
       supabase.from('plat_listings').select('*').order('created_at', { ascending: false }),
     ]);
+
     if (s) setStats(s);
     if (l) setListings(l);
+    if (h) setSalesHistory(h);
     if (c) setCharacters(c);
     if (p) setPlats(p);
   };
@@ -136,64 +147,28 @@ export default function DRMarketPage() {
         </div>
 
         <div className="max-w-6xl mx-auto px-4 flex gap-6 border-t border-slate-800/60 overflow-x-auto">
-          <button
-            type="button"
-            onClick={() => setActiveTab('materials')}
-            className={`py-3 text-sm font-medium border-b-2 inline-flex items-center gap-2 whitespace-nowrap cursor-pointer transition ${
-              activeTab === 'materials'
-                ? 'border-amber-400 text-amber-400'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
-            }`}
-          >
+          <button type="button" onClick={() => setActiveTab('materials')} className={`py-3 text-sm font-medium border-b-2 inline-flex items-center gap-2 whitespace-nowrap cursor-pointer transition ${activeTab === 'materials' ? 'border-amber-400 text-amber-400' : 'border-transparent text-slate-400 hover:text-slate-200'}`}>
             <Package className="w-4 h-4" />
             Marketplace ({stats.length})
           </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('prices')}
-            className={`py-3 text-sm font-medium border-b-2 inline-flex items-center gap-2 whitespace-nowrap cursor-pointer transition ${
-              activeTab === 'prices'
-                ? 'border-amber-400 text-amber-400'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
-            }`}
-          >
+          <button type="button" onClick={() => setActiveTab('sales')} className={`py-3 text-sm font-medium border-b-2 inline-flex items-center gap-2 whitespace-nowrap cursor-pointer transition ${activeTab === 'sales' ? 'border-amber-400 text-amber-400' : 'border-transparent text-slate-400 hover:text-slate-200'}`}>
+            <LayoutList className="w-4 h-4" />
+            Sales History ({salesHistory.length})
+          </button>
+          <button type="button" onClick={() => setActiveTab('prices')} className={`py-3 text-sm font-medium border-b-2 inline-flex items-center gap-2 whitespace-nowrap cursor-pointer transition ${activeTab === 'prices' ? 'border-amber-400 text-amber-400' : 'border-transparent text-slate-400 hover:text-slate-200'}`}>
             <TrendingUp className="w-4 h-4" />
             Price Index &amp; Charts
           </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('characters')}
-            className={`py-3 text-sm font-medium border-b-2 inline-flex items-center gap-2 whitespace-nowrap cursor-pointer transition ${
-              activeTab === 'characters'
-                ? 'border-amber-400 text-amber-400'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
-            }`}
-          >
+          <button type="button" onClick={() => setActiveTab('characters')} className={`py-3 text-sm font-medium border-b-2 inline-flex items-center gap-2 whitespace-nowrap cursor-pointer transition ${activeTab === 'characters' ? 'border-amber-400 text-amber-400' : 'border-transparent text-slate-400 hover:text-slate-200'}`}>
             <Users className="w-4 h-4" />
             Character Sales ({characters.filter((c) => c.status === 'active').length})
           </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('plats')}
-            className={`py-3 text-sm font-medium border-b-2 inline-flex items-center gap-2 whitespace-nowrap cursor-pointer transition ${
-              activeTab === 'plats'
-                ? 'border-amber-400 text-amber-400'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
-            }`}
-          >
+          <button type="button" onClick={() => setActiveTab('plats')} className={`py-3 text-sm font-medium border-b-2 inline-flex items-center gap-2 whitespace-nowrap cursor-pointer transition ${activeTab === 'plats' ? 'border-amber-400 text-amber-400' : 'border-transparent text-slate-400 hover:text-slate-200'}`}>
             <Coins className="w-4 h-4" />
             Plats for Sale ({plats.filter((p) => p.status === 'active').length})
           </button>
           {user && (
-            <button
-              type="button"
-              onClick={() => setActiveTab('mine')}
-              className={`py-3 text-sm font-medium border-b-2 inline-flex items-center gap-2 whitespace-nowrap cursor-pointer transition ${
-                activeTab === 'mine'
-                  ? 'border-amber-400 text-amber-400'
-                  : 'border-transparent text-slate-400 hover:text-slate-200'
-              }`}
-            >
+            <button type="button" onClick={() => setActiveTab('mine')} className={`py-3 text-sm font-medium border-b-2 inline-flex items-center gap-2 whitespace-nowrap cursor-pointer transition ${activeTab === 'mine' ? 'border-amber-400 text-amber-400' : 'border-transparent text-slate-400 hover:text-slate-200'}`}>
               <LayoutList className="w-4 h-4" />
               My Listings ({myActiveCount})
             </button>
@@ -202,6 +177,10 @@ export default function DRMarketPage() {
       </header>
 
       <main className="max-w-6xl mx-auto px-4 py-6">
+        {activeTab === 'sales' && (
+          <SalesHistoryTab sales={salesHistory} />
+        )}
+
         {activeTab === 'materials' && (
           <MaterialsTab
             stats={stats}
@@ -218,9 +197,11 @@ export default function DRMarketPage() {
             }}
           />
         )}
+
         {activeTab === 'prices' && (
           <PriceIndexTab stats={stats} listings={listings} />
         )}
+
         {activeTab === 'characters' && (
           <CharactersTab
             characters={characters}
@@ -236,6 +217,7 @@ export default function DRMarketPage() {
             }}
           />
         )}
+
         {activeTab === 'plats' && (
           <PlatsTab
             plats={plats}
@@ -251,6 +233,7 @@ export default function DRMarketPage() {
             }}
           />
         )}
+
         {activeTab === 'mine' && user && (
           <MyListingsTab
             userId={user.id}
@@ -288,6 +271,7 @@ export default function DRMarketPage() {
           />
         )}
       </main>
+
       <EmailAuthModal
         open={showEmailAuth}
         supabase={supabase}
@@ -316,18 +300,18 @@ export default function DRMarketPage() {
       <MarkSoldModal
         listing={soldTarget}
         onClose={() => setSoldTarget(null)}
-        onConfirm={async (soldKronars, soldUsd) => {
+        onConfirm={async (quantitySold, soldKronars, soldUsd) => {
           if (!soldTarget) return;
-          await supabase
-            .from('material_listings')
-            .update({
-              status: 'sold',
-              sold_unit_price: soldKronars ?? soldUsd ?? 1,
-              sold_kronars: soldKronars,
-              sold_usd: soldUsd,
-              sold_at: new Date().toISOString(),
-            })
-            .eq('id', soldTarget.id);
+          const { error } = await supabase.rpc('record_material_sale', {
+            p_listing_id: soldTarget.id,
+            p_quantity_sold: quantitySold,
+            p_sold_kronars: soldKronars,
+            p_sold_usd: soldUsd,
+          });
+          if (error) {
+            alert(error.message);
+            return;
+          }
           setSoldTarget(null);
           await loadAll();
         }}
@@ -354,15 +338,12 @@ export default function DRMarketPage() {
         onClose={() => setSoldCharTarget(null)}
         onConfirm={async (soldPk, soldUsd) => {
           if (!soldCharTarget) return;
-          await supabase
-            .from('character_listings')
-            .update({
-              status: 'sold',
-              sold_pk: soldPk,
-              sold_usd: soldUsd,
-              sold_at: new Date().toISOString(),
-            })
-            .eq('id', soldCharTarget.id);
+          await supabase.from('character_listings').update({
+            status: 'sold',
+            sold_pk: soldPk,
+            sold_usd: soldUsd,
+            sold_at: new Date().toISOString(),
+          }).eq('id', soldCharTarget.id);
           setSoldCharTarget(null);
           await loadAll();
         }}
@@ -389,14 +370,11 @@ export default function DRMarketPage() {
         onClose={() => setSoldPlatTarget(null)}
         onConfirm={async (soldRatePer1k) => {
           if (!soldPlatTarget) return;
-          await supabase
-            .from('plat_listings')
-            .update({
-              status: 'sold',
-              sold_usd_per_1k: soldRatePer1k,
-              sold_at: new Date().toISOString(),
-            })
-            .eq('id', soldPlatTarget.id);
+          await supabase.from('plat_listings').update({
+            status: 'sold',
+            sold_usd_per_1k: soldRatePer1k,
+            sold_at: new Date().toISOString(),
+          }).eq('id', soldPlatTarget.id);
           setSoldPlatTarget(null);
           await loadAll();
         }}
