@@ -1,5 +1,6 @@
 ﻿'use client';
 
+import { getElanthipediaUrl } from '@/lib/elanthipedia';
 import React, { useState, useMemo } from 'react';
 import { Search, TrendingUp } from 'lucide-react';
 import { MaterialStat, MaterialListing, fmtNum, fmtUsd } from '@/types/market';
@@ -217,7 +218,15 @@ export function PriceIndexTab({ stats, listings }: Props) {
                     }`}
                   >
                     <td className="px-4 py-2.5 font-medium text-slate-100">
-                      {m.name}
+                      <a
+                        href={getElanthipediaUrl(m.name)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:text-amber-400 hover:underline transition-colors"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {m.name}
+                      </a>
                       {m.variant ? <span className="ml-1.5 text-amber-400 text-xs">({m.variant})</span> : null}
                     </td>
                     <td className="px-4 py-2.5 text-xs text-slate-400">{m.subcategory}</td>

@@ -11,6 +11,7 @@ import {
   Pencil,
 } from 'lucide-react';
 import { MaterialStat, MaterialListing, fmtNum, fmtUsd } from '@/types/market';
+import { getElanthipediaUrl } from '@/lib/elanthipedia';
 
 type Props = {
   stats: MaterialStat[];
@@ -139,8 +140,15 @@ export function MaterialsTab({
               >
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <span className="font-bold text-slate-100">
-                      {nameMap.get(l.material_id) || 'Material'}
+                    <span>
+                      <a
+                        href={getElanthipediaUrl(nameMap.get(l.material_id) || 'Material')}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-bold text-slate-100 hover:text-amber-400 hover:underline transition-colors"
+                      >
+                        {nameMap.get(l.material_id) || 'Material'}
+                      </a>
                       {l.variant ? ` (${l.variant})` : ''}
                     </span>
 
@@ -266,7 +274,14 @@ export function MaterialsTab({
               </span>
 
               <h2 className="text-2xl font-bold">
-                {selected.name}
+                <a
+                  href={getElanthipediaUrl(selected.name)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-amber-400 hover:underline transition-colors"
+                >
+                  {selected.name}
+                </a>
                 {selected.variant ? ` (${selected.variant})` : ''}
               </h2>
 
@@ -466,14 +481,24 @@ export function MaterialsTab({
                     onClick={() => setSelectedKey(rowKey)}
                     className="hover:bg-slate-800/60 cursor-pointer transition"
                   >
+
                     <td className="px-4 py-3 font-medium text-slate-100">
-                      {m.name}
+                      <a
+                        href={getElanthipediaUrl(m.name)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:text-amber-400 hover:underline transition-colors"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {m.name}
+                      </a>
                       {m.variant ? (
                         <span className="ml-1.5 text-amber-400 text-xs">
                           ({m.variant})
                         </span>
                       ) : null}
                     </td>
+
 
                     <td className="px-4 py-3 text-xs text-slate-300">
                       {m.subcategory}
