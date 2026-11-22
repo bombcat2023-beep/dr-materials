@@ -21,6 +21,27 @@ export function PriceIndexTab({ stats, listings }: Props) {
       return label.toLowerCase().includes(q) || m.subcategory.toLowerCase().includes(q);
     });
   }, [stats, search]);
+  const MATERIAL_CATEGORY_ORDER = [
+    'Stone',
+    'Wood',
+    'Metal',
+    'Leather',
+    'Cloth',
+    'Bone',
+  ];
+
+  const groupedFiltered = useMemo(() => {
+    return MATERIAL_CATEGORY_ORDER.map((category) => {
+      const materials = filtered
+        .filter((m) => m.subcategory === category)
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+      return {
+        category,
+        materials,
+      };
+    }).filter((group) => group.materials.length > 0);
+  }, [filtered]);
 
   const activeKey = useMemo(() => {
     if (selectedKey) return selectedKey;
@@ -206,42 +227,70 @@ export function PriceIndexTab({ stats, listings }: Props) {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60">
-              {filtered.map((m) => {
-                const rowKey = `${m.material_id}:${m.variant || ''}`;
-                const isSelected = rowKey === activeKey;
-                return (
-                  <tr
-                    key={rowKey}
-                    onClick={() => setSelectedKey(rowKey)}
-                    className={`cursor-pointer transition ${
-                      isSelected ? 'bg-amber-500/10' : 'hover:bg-slate-800/60'
-                    }`}
-                  >
-                    <td className="px-4 py-2.5 font-medium text-slate-100">
-                      <a
-                        href={getElanthipediaUrl(m.name)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="hover:text-amber-400 hover:underline transition-colors"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        {m.name}
-                      </a>
-                      {m.variant ? <span className="ml-1.5 text-amber-400 text-xs">({m.variant})</span> : null}
-                    </td>
-                    <td className="px-4 py-2.5 text-xs text-slate-400">{m.subcategory}</td>
-                    <td className="px-4 py-2.5 text-right font-mono text-xs text-amber-300">
-                      {fmtNum(m.avg_listed_kronars)} PK / {fmtUsd(m.avg_listed_usd)}
-                    </td>
-                    <td className="px-4 py-2.5 text-right font-mono text-xs text-emerald-400">
-                      {fmtNum(m.avg_sold_kronars)} PK / {fmtUsd(m.avg_sold_usd)}
-                    </td>
-                    <td className="px-4 py-2.5 text-right text-xs text-slate-400">
-                      {m.active_count} active Â· {m.sold_count} sold
+              {groupedFiltered.map((group) => (
+                <React.Fragment key={group.category}>
+                  {/* Category Heading */}
+                  <tr>
+                    <td
+                      colSpan={5}
+                      className="px-4 py-3 text-xs font-bold uppercase tracking-wider text-amber-400 bg-slate-950 border-b border-slate-800"
+                    >
+                      {group.category}
                     </td>
                   </tr>
-                );
-              })}
+
+                  {/* Materials in Category */}
+                  {group.materials.map((m) => {
+                    const rowKey = `${m.material_id}:${m.variant || ''}`;
+                    const isSelected = rowKey === activeKey;
+
+                    return (
+                      <tr
+                        key={rowKey}
+                        onClick={() => setSelectedKey(rowKey)}
+                        className={`cursor-pointer transition ${
+                          isSelected
+                            ? 'bg-amber-500/10'
+                            : 'hover:bg-slate-800/60'
+                        }`}
+                      >
+                        <td className="px-4 py-2.5 font-medium text-slate-100">
+                          <a
+                            href={getElanthipediaUrl(m.name)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="hover:text-amber-400 hover:underline transition-colors"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {m.name}
+                          </a>
+                          {m.variant ? (
+                            <span className="ml-1.5 text-amber-400 text-xs">
+                              ({m.variant})
+                            </span>
+                          ) : null}
+                        </td>
+
+                        <td className="px-4 py-2.5 text-xs text-slate-400">
+                          {m.subcategory}
+                        </td>
+
+                        <td className="px-4 py-2.5 text-right font-mono text-xs text-amber-300">
+                          {fmtNum(m.avg_listed_kronars)} PK / {fmtUsd(m.avg_listed_usd)}
+                        </td>
+
+                        <td className="px-4 py-2.5 text-right font-mono text-xs text-emerald-400">
+                          {fmtNum(m.avg_sold_kronars)} PK / {fmtUsd(m.avg_sold_usd)}
+                        </td>
+
+                        <td className="px-4 py-2.5 text-right text-xs text-slate-400">
+                          {m.active_count} active · {m.sold_count} sold
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </React.Fragment>
+              ))}
             </tbody>
           </table>
         </div>

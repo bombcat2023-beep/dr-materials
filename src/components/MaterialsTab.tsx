@@ -24,6 +24,15 @@ type Props = {
   onDelete: (listing: MaterialListing) => void;
 };
 
+const MATERIAL_CATEGORY_ORDER = [
+  'Stone',
+  'Wood',
+  'Metal',
+  'Leather',
+  'Cloth',
+  'Bone',
+];
+
 export function MaterialsTab({
   stats,
   listings,
@@ -56,6 +65,20 @@ export function MaterialsTab({
       );
     });
   }, [stats, search]);
+  const groupedMaterials = useMemo(() => {
+    const groups = MATERIAL_CATEGORY_ORDER.map((category) => {
+      const materials = filtered
+        .filter((m) => m.subcategory === category)
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+      return {
+        category,
+        materials,
+      };
+    });
+
+    return groups.filter((group) => group.materials.length > 0);
+  }, [filtered]);
   const sidebarFiltered = useMemo(() => {
     const q = sidebarSearch.toLowerCase().trim();
 
@@ -69,24 +92,52 @@ export function MaterialsTab({
     });
   }, [stats, sidebarSearch]);
 
-  const activeFeed = useMemo(() => {
-    const q = listingSearch.toLowerCase().trim();
+const activeFeed = useMemo(() => {
+  const q = listingSearch.toLowerCase().trim();
 
-    return listings.filter((l) => {
-      if (l.status !== 'active') return false;
-      if (!q) return true;
+  return listings.filter((l) => {
+    if (l.status !== 'active') return false;
+    if (!q) return true;
 
-      const matName = nameMap.get(l.material_id) || '';
-      const label = l.variant ? `${matName} ${l.variant}` : matName;
+    const matName = nameMap.get(l.material_id) || '';
+    const label = l.variant ? `${matName} ${l.variant}` : matName;
 
-      return (
-        label.toLowerCase().includes(q) ||
-        l.seller_contact.toLowerCase().includes(q) ||
-        (l.notes || '').toLowerCase().includes(q)
-      );
-    });
-  }, [listings, listingSearch, nameMap]);
+    const material = stats.find(
+      (m) => m.material_id === l.material_id
+    );
+    const category = material?.subcategory || '';
 
+    return (
+      label.toLowerCase().includes(q) ||
+      category.toLowerCase().includes(q) ||
+      l.seller_contact.toLowerCase().includes(q) ||
+      (l.notes || '').toLowerCase().includes(q)
+    );
+  });
+}, [listings, listingSearch, nameMap, stats]);
+const groupedActiveFeed = useMemo(() => {
+  return MATERIAL_CATEGORY_ORDER.map((category) => {
+    const categoryListings = activeFeed
+      .filter((listing) => {
+        const material = stats.find(
+          (m) => m.material_id === listing.material_id
+        );
+
+        return material?.subcategory === category;
+      })
+      .sort((a, b) => {
+        const nameA = nameMap.get(a.material_id) || '';
+        const nameB = nameMap.get(b.material_id) || '';
+
+        return nameA.localeCompare(nameB);
+      });
+
+    return {
+      category,
+      listings: categoryListings,
+    };
+  }).filter((group) => group.listings.length > 0);
+}, [activeFeed, stats, nameMap]);
   const selected = useMemo(
     () =>
       stats.find(
@@ -200,6 +251,7 @@ return (
           )}
         </div>
 
+
         {activeFeed.length === 0 ? (
           <p className="text-sm text-slate-400">
             {listingSearch
@@ -207,133 +259,149 @@ return (
               : 'No active material listings yet. Sign in and click "List Material" to post the first one!'}
           </p>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {activeFeed.map((l) => (
-              <div
-                key={l.id}
-                className="bg-slate-950 border border-slate-800 rounded-lg p-3.5 flex flex-col justify-between gap-2 text-sm"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <div className="flex items-center gap-1">
-                      <span className="font-bold text-slate-100">
-                        {nameMap.get(l.material_id) || 'Material'}
-                      </span>
+          <div className="space-y-5">
+            {groupedActiveFeed.map((group) => (
+              <div key={group.category} className="space-y-3">
+                {/* Category Heading */}
+                <h3 className="text-xs font-bold uppercase tracking-wider text-amber-400 border-b border-slate-800 pb-2">
+                  {group.category}
+                </h3>
 
-                      <a
-                        href={getElanthipediaUrl(
-                          nameMap.get(l.material_id) || 'Material'
+                {/* Listings in this Category */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {group.listings.map((l) => (
+                    <div
+                      key={l.id}
+                      className="bg-slate-950 border border-slate-800 rounded-lg p-3.5 flex flex-col justify-between gap-2 text-sm"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <div className="flex items-center gap-1">
+                            <span className="font-bold text-slate-100">
+                              {nameMap.get(l.material_id) || 'Material'}
+                            </span>
+
+                            <a
+                              href={getElanthipediaUrl(
+                                nameMap.get(l.material_id) || 'Material'
+                              )}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              title="View material on Elanthipedia"
+                              aria-label={`View ${
+                                nameMap.get(l.material_id) || 'material'
+                              } on Elanthipedia`}
+                              className="inline-flex items-center justify-center text-slate-500 hover:text-amber-400 transition-colors"
+                            >
+                              <ExternalLink className="w-3.5 h-3.5" />
+                            </a>
+
+                            {l.variant ? ` (${l.variant})` : ''}
+                          </div>
+
+                          <div className="text-xs text-slate-400 mt-0.5">
+                            Vol:{' '}
+                            <strong className="text-slate-200">
+                              {l.quantity}
+                            </strong>
+                            {l.quality ? ` · Q${l.quality}` : ''}
+                          </div>
+                        </div>
+
+                        <div className="text-right font-mono text-xs">
+                          {l.listed_kronars != null && (
+                            <div className="text-amber-400">
+                              {fmtNum(l.listed_kronars)} PK/vol{' '}
+                              <span className="text-slate-400">
+                                ({fmtNum(l.listed_kronars * l.quantity)} PK total)
+                              </span>
+                            </div>
+                          )}
+
+                          {l.listed_usd != null && (
+                            <div className="text-amber-400">
+                              {fmtUsd(l.listed_usd)}/vol{' '}
+                              <span className="text-slate-400">
+                                ({fmtUsd(l.listed_usd * l.quantity)} total)
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {l.notes && (
+                        <p className="text-xs text-slate-400 italic">{l.notes}</p>
+                      )}
+
+                      <div className="pt-2 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-2 text-xs">
+                        <div className="flex flex-wrap items-center gap-3 text-slate-300">
+                          <span className="inline-flex items-center gap-1">
+                            <User className="w-3.5 h-3.5 text-amber-400" />
+                            <strong>{l.seller_contact}</strong>
+                          </span>
+
+                          {l.discord_handle && (
+                            <span className="inline-flex items-center gap-1 text-indigo-400">
+                              <MessageSquare className="w-3.5 h-3.5" />
+                              {l.discord_handle}
+                            </span>
+                          )}
+
+                          {/* Discord Profile Link */}
+                          {l.seller_discord_id && (
+                            <a
+                              href={`https://discord.com/users/${l.seller_discord_id}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 bg-indigo-600/20 hover:bg-indigo-600/40 border border-indigo-500/40 text-indigo-300 px-2 py-0.5 rounded text-xs font-medium transition"
+                            >
+                              <MessageSquare className="w-3 h-3" />
+                              Message on Discord
+                            </a>
+                          )}
+                        </div>
+
+                        {/* Owner Controls */}
+                        {userId === l.seller_id && (
+                          <div className="inline-flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => onEdit(l)}
+                              className="inline-flex items-center gap-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 px-2 py-1 rounded text-xs font-medium cursor-pointer"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                              Edit
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => onMarkSold(l)}
+                              className="inline-flex items-center gap-1 bg-emerald-600 hover:bg-emerald-500 text-white px-2.5 py-1 rounded text-xs font-medium cursor-pointer"
+                            >
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              Mark Sold
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => onDelete(l)}
+                              title="Delete listing"
+                              className="inline-flex items-center gap-1 bg-red-600/20 hover:bg-red-600/40 border border-red-500/40 text-red-300 px-2 py-1 rounded text-xs font-medium cursor-pointer"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              Delete
+                            </button>
+                          </div>
                         )}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        title="View material on Elanthipedia"
-                        aria-label={`View ${
-                          nameMap.get(l.material_id) || 'material'
-                        } on Elanthipedia`}
-                        className="inline-flex items-center justify-center text-slate-500 hover:text-amber-400 transition-colors"
-                      >
-                        <ExternalLink className="w-3.5 h-3.5" />
-                      </a>
-
-                      {l.variant ? ` (${l.variant})` : ''}
-                    </div>
-
-                    <div className="text-xs text-slate-400 mt-0.5">
-                      Vol: <strong className="text-slate-200">{l.quantity}</strong>
-                      {l.quality ? ` · Q${l.quality}` : ''}
-                    </div>
-                  </div>
-
-                  <div className="text-right font-mono text-xs">
-                    {l.listed_kronars != null && (
-                      <div className="text-amber-400">
-                        {fmtNum(l.listed_kronars)} PK/vol{' '}
-                        <span className="text-slate-400">
-                          ({fmtNum(l.listed_kronars * l.quantity)} PK total)
-                        </span>
                       </div>
-                    )}
-
-                    {l.listed_usd != null && (
-                      <div className="text-amber-400">
-                        {fmtUsd(l.listed_usd)}/vol{' '}
-                        <span className="text-slate-400">
-                          ({fmtUsd(l.listed_usd * l.quantity)} total)
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {l.notes && (
-                  <p className="text-xs text-slate-400 italic">{l.notes}</p>
-                )}
-
-                <div className="pt-2 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-2 text-xs">
-                  <div className="flex flex-wrap items-center gap-3 text-slate-300">
-                    <span className="inline-flex items-center gap-1">
-                      <User className="w-3.5 h-3.5 text-amber-400" />
-                      <strong>{l.seller_contact}</strong>
-                    </span>
-
-                    {l.discord_handle && (
-                      <span className="inline-flex items-center gap-1 text-indigo-400">
-                        <MessageSquare className="w-3.5 h-3.5" />
-                        {l.discord_handle}
-                      </span>
-                    )}
-
-                    {/* Discord Profile Link */}
-                    {l.seller_discord_id && (
-                      <a
-                        href={`https://discord.com/users/${l.seller_discord_id}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 bg-indigo-600/20 hover:bg-indigo-600/40 border border-indigo-500/40 text-indigo-300 px-2 py-0.5 rounded text-xs font-medium transition"
-                      >
-                        <MessageSquare className="w-3 h-3" />
-                        Message on Discord
-                      </a>
-                    )}
-                  </div>
-
-                  {/* Owner Controls */}
-                  {userId === l.seller_id && (
-                    <div className="inline-flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => onEdit(l)}
-                        className="inline-flex items-center gap-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 px-2 py-1 rounded text-xs font-medium cursor-pointer"
-                      >
-                        <Pencil className="w-3.5 h-3.5" />
-                        Edit
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => onMarkSold(l)}
-                        className="inline-flex items-center gap-1 bg-emerald-600 hover:bg-emerald-500 text-white px-2.5 py-1 rounded text-xs font-medium cursor-pointer"
-                      >
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        Mark Sold
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => onDelete(l)}
-                        title="Delete listing"
-                        className="inline-flex items-center gap-1 bg-red-600/20 hover:bg-red-600/40 border border-red-500/40 text-red-300 px-2 py-1 rounded text-xs font-medium cursor-pointer"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                        Delete
-                      </button>
                     </div>
-                  )}
+                  ))}
                 </div>
               </div>
             ))}
           </div>
         )}
+
       </section>
 
       {/* Bottom Search Bar — Filters Materials Price Index Table */}
@@ -551,6 +619,7 @@ return (
       )}
 
       {/* Alphabetical Materials Price Index Table */}
+
       <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
@@ -566,61 +635,77 @@ return (
             </thead>
 
             <tbody className="divide-y divide-slate-800/60">
-              {filtered.map((m) => {
-                const rowKey = `${m.material_id}:${m.variant || ''}`;
-
-                return (
-                  <tr
-                    key={rowKey}
-                    onClick={() => setSelectedKey(rowKey)}
-                    className="hover:bg-slate-800/60 cursor-pointer transition"
-                  >
-
-                    <td className="px-4 py-3 font-medium text-slate-100">
-                      <div className="flex items-center gap-1">
-                        <span>{m.name}</span>
-
-                        <a
-                          href={getElanthipediaUrl(m.name)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          title="View material on Elanthipedia"
-                          aria-label={`View ${m.name} on Elanthipedia`}
-                          className="inline-flex items-center justify-center text-slate-500 hover:text-amber-400 transition-colors"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <ExternalLink className="w-3.5 h-3.5" />
-                        </a>
-
-                        {m.variant ? (
-                          <span className="ml-1.5 text-amber-400 text-xs">
-                            ({m.variant})
-                          </span>
-                        ) : null}
-                      </div>
-                    </td>
-
-
-                    <td className="px-4 py-3 text-xs text-slate-300">
-                      {m.subcategory}
-                    </td>
-
-                    <td className="px-4 py-3 text-right">{m.active_count}</td>
-
-                    <td className="px-4 py-3 text-right font-mono text-xs">
-                      {fmtNum(m.avg_listed_kronars)} PK /{' '}
-                      {fmtUsd(m.avg_listed_usd)}
-                    </td>
-
-                    <td className="px-4 py-3 text-right">{m.sold_count}</td>
-
-                    <td className="px-4 py-3 text-right font-mono text-xs text-emerald-400">
-                      {fmtNum(m.avg_sold_kronars)} PK /{' '}
-                      {fmtUsd(m.avg_sold_usd)}
+              {groupedMaterials.map((group) => (
+                <React.Fragment key={group.category}>
+                  {/* Category Heading */}
+                  <tr className="bg-slate-950">
+                    <td
+                      colSpan={6}
+                      className="px-4 py-3 text-amber-400 font-bold uppercase tracking-wider text-xs border-y border-slate-800"
+                    >
+                      {group.category}
                     </td>
                   </tr>
-                );
-              })}
+
+                  {/* Materials in this Category */}
+                  {group.materials.map((m) => {
+                    const rowKey = `${m.material_id}:${m.variant || ''}`;
+
+                    return (
+                      <tr
+                        key={rowKey}
+                        onClick={() => setSelectedKey(rowKey)}
+                        className="hover:bg-slate-800/60 cursor-pointer transition"
+                      >
+                        <td className="px-4 py-3 font-medium text-slate-100">
+                          <div className="flex items-center gap-1">
+                            <span>{m.name}</span>
+
+                            <a
+                              href={getElanthipediaUrl(m.name)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              title="View material on Elanthipedia"
+                              aria-label={`View ${m.name} on Elanthipedia`}
+                              className="inline-flex items-center justify-center text-slate-500 hover:text-amber-400 transition-colors"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <ExternalLink className="w-3.5 h-3.5" />
+                            </a>
+
+                            {m.variant ? (
+                              <span className="ml-1.5 text-amber-400 text-xs">
+                                ({m.variant})
+                              </span>
+                            ) : null}
+                          </div>
+                        </td>
+
+                        <td className="px-4 py-3 text-xs text-slate-300">
+                          {m.subcategory}
+                        </td>
+
+                        <td className="px-4 py-3 text-right">{m.active_count}</td>
+
+
+                        <td className="px-4 py-3 text-right font-mono text-xs">
+                          {fmtNum(m.avg_listed_kronars)} PK /{' '}
+                          {fmtUsd(m.avg_listed_usd)}
+                        </td>
+
+                        <td className="px-4 py-3 text-right">
+                          {m.sold_count}
+                        </td>
+
+                        <td className="px-4 py-3 text-right font-mono text-xs text-emerald-400">
+                          {fmtNum(m.avg_sold_kronars)} PK /{' '}
+                          {fmtUsd(m.avg_sold_usd)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </React.Fragment>
+              ))}
             </tbody>
           </table>
         </div>

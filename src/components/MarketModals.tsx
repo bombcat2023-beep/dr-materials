@@ -46,15 +46,35 @@ export function ListMaterialModal({
     return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
   }, [stats]);
 
-  const matchingMaterials = useMemo(() => {
+
+  const MATERIAL_CATEGORY_ORDER = [
+    'Stone',
+    'Wood',
+    'Metal',
+    'Leather',
+    'Cloth',
+    'Bone',
+  ];
+
+  const groupedMatchingMaterials = useMemo(() => {
     const q = matSearch.toLowerCase().trim();
-    if (!q) return uniqueMaterials;
-    return uniqueMaterials.filter(
-      (m) =>
-        m.name.toLowerCase().includes(q) ||
-        m.subcategory.toLowerCase() === q
-    );
+
+    const matching = !q
+      ? uniqueMaterials
+      : uniqueMaterials.filter(
+          (m) =>
+            m.name.toLowerCase().includes(q) ||
+            m.subcategory.toLowerCase() === q
+        );
+
+    return MATERIAL_CATEGORY_ORDER.map((category) => ({
+      category,
+      materials: matching
+        .filter((m) => m.subcategory === category)
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    })).filter((group) => group.materials.length > 0);
   }, [uniqueMaterials, matSearch]);
+
 
   const selectedMat = useMemo(
     () => uniqueMaterials.find((m) => m.material_id === Number(matId)) || null,
@@ -153,19 +173,46 @@ export function ListMaterialModal({
             }}
             className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-amber-400"
           />
-          <select
-            required
-            value={matId}
-            onChange={(e) => setMatId(Number(e.target.value))}
-            className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm"
-          >
-            <option value="">Select material ({matchingMaterials.length} matches)...</option>
-            {matchingMaterials.map((m) => (
-              <option key={m.material_id} value={m.material_id}>
-                {m.name} ({m.subcategory})
-              </option>
-            ))}
-          </select>
+
+          <div className="max-h-64 overflow-y-auto space-y-2 border border-slate-800 rounded-lg p-2 bg-slate-950">
+            {groupedMatchingMaterials.length === 0 ? (
+              <p className="text-xs text-slate-500 p-2">
+                No materials match your search.
+              </p>
+            ) : (
+              groupedMatchingMaterials.map((group) => (
+                <details
+                  key={group.category}
+                  open={!!matSearch}
+                  className="border border-slate-800 rounded-lg overflow-hidden"
+                >
+                  <summary className="cursor-pointer select-none px-3 py-2 bg-slate-900 hover:bg-slate-800 text-xs font-bold uppercase tracking-wider text-amber-400">
+                    {group.category} ({group.materials.length})
+                  </summary>
+
+                  <div className="p-1 space-y-0.5">
+                    {group.materials.map((m) => (
+                      <button
+                        key={m.material_id}
+                        type="button"
+                        onClick={() => setMatId(m.material_id)}
+                        className={`w-full text-left px-3 py-1.5 rounded text-sm transition ${
+                          Number(matId) === m.material_id
+                            ? 'bg-amber-500/15 text-amber-400 border border-amber-500/40'
+                            : 'text-slate-300 hover:bg-slate-800 border border-transparent'
+                        }`}
+                      >
+                        {m.name}
+                        {Number(matId) === m.material_id && (
+                          <span className="ml-2 text-xs">✓ Selected</span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </details>
+              ))
+            )}
+          </div>
         </div>
 
         {/* Conditional Sub-Type Dropdown for Cloth, Stone, and Wood */}
