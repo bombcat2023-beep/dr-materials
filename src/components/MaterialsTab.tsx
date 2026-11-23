@@ -200,7 +200,7 @@ return (
     <div className="flex flex-col lg:flex-row gap-6 items-start w-full">
 
       {/* Left Sidebar — Material Navigator */}
-      <aside className="w-full lg:w-64 shrink-0 lg:sticky lg:top-36 lg:h-[calc(100vh-2rem)] bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col">
+      <aside className="w-full lg:w-64 shrink-0 lg:sticky lg:top-36 lg:h-[calc(100vh-9rem)] bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col">
         <h2 className="text-sm font-bold uppercase tracking-wider text-amber-400 mb-3">
           Materials Search
         </h2>
