@@ -176,7 +176,7 @@ export default function DRMarketPage() {
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 py-6">
+      <main className="w-[90%] mx-auto px-4 py-6">
         {activeTab === 'sales' && (
           <SalesHistoryTab sales={salesHistory} />
         )}
