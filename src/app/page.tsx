@@ -10,6 +10,7 @@ import { SalesHistoryTab } from '@/components/SalesHistoryTab';
 import { CharactersTab } from '@/components/CharactersTab';
 import { PlatsTab } from '@/components/PlatsTab';
 import { MyListingsTab } from '@/components/MyListingsTab';
+import { MessagesTab } from '@/components/MessagesTab';
 import { ListMaterialModal, MarkSoldModal, EmailAuthModal } from '@/components/MarketModals';
 import { ListCharacterModal, MarkCharacterSoldModal } from '@/components/CharacterModals';
 import { ListPlatModal, MarkPlatSoldModal } from '@/components/PlatModals';
@@ -17,7 +18,73 @@ import { ListPlatModal, MarkPlatSoldModal } from '@/components/PlatModals';
 export default function DRMarketPage() {
   const supabase = useMemo(() => createClient(), []);
   const [user, setUser] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<'materials' | 'sales' | 'prices' | 'characters' | 'plats' | 'mine'>('materials');
+  const [hasNewMessageNotification, setHasNewMessageNotification] = useState(false);
+  const [activeTab, setActiveTab] = useState<'materials' | 'sales' | 'prices' | 'characters' | 'plats' | 'mine' | 'messages'>('materials');
+  const [openConversationId, setOpenConversationId] = useState<string | null>(null);
+  const handleMessageSeller = async (listing: MaterialListing) => {
+    if (!user) return;
+    if (!listing.seller_id || listing.seller_id === user.id) return;
+
+    const listingId = String(listing.id);
+
+    // Check for an existing conversation
+    const { data: existing, error: lookupError } = await supabase
+      .from('conversations')
+      .select('id')
+      .eq('buyer_id', user.id)
+      .eq('seller_id', listing.seller_id)
+      .eq('listing_type', 'material')
+      .eq('listing_id', listingId)
+      .maybeSingle();
+
+    if (lookupError) {
+      console.error('Conversation lookup failed:', lookupError);
+      alert('Could not check for an existing conversation.');
+      return;
+    }
+
+    let conversationId = existing?.id;
+
+    // Create a conversation if one doesn't exist
+    if (!conversationId) {
+      const { data: created, error: createError } = await supabase
+        .from('conversations')
+        .insert({
+          buyer_id: user.id,
+          seller_id: listing.seller_id,
+          listing_id: listingId,
+          listing_type: 'material',
+        })
+        .select('id')
+        .single();
+
+      if (createError) {
+        console.error('Conversation creation failed:', createError);
+
+        // If another request created it at the same time, retrieve that row
+        const { data: retry } = await supabase
+          .from('conversations')
+          .select('id')
+          .eq('buyer_id', user.id)
+          .eq('seller_id', listing.seller_id)
+          .eq('listing_type', 'material')
+          .eq('listing_id', listingId)
+          .maybeSingle();
+
+        if (!retry?.id) {
+          alert('Could not start this conversation.');
+          return;
+        }
+
+        conversationId = retry.id;
+      } else {
+        conversationId = created.id;
+      }
+    }
+
+    setOpenConversationId(conversationId);
+    setActiveTab('messages');
+  };
 
   const [stats, setStats] = useState<MaterialStat[]>([]);
   const [listings, setListings] = useState<MaterialListing[]>([]);
@@ -62,15 +129,126 @@ export default function DRMarketPage() {
     if (p) setPlats(p);
   };
 
+  // Initialize page and listen for authentication changes
   useEffect(() => {
     setMounted(true);
     supabase.auth.getUser().then(({ data }) => setUser(data.user ?? null));
+
     const { data: listener } = supabase.auth.onAuthStateChange((_e, session) => {
       setUser(session?.user ?? null);
     });
+
     loadAll();
+
     return () => listener.subscription.unsubscribe();
   }, []);
+
+  // Check unread messages and listen for new incoming messages
+  useEffect(() => {
+    if (!user?.id) {
+      setHasNewMessageNotification(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    const checkUnreadMessages = async () => {
+      const { data: conversations, error } = await supabase
+        .from('conversations')
+        .select(
+          'id, buyer_id, seller_id, buyer_last_read_at, seller_last_read_at'
+        )
+        .or(
+          `and(buyer_id.eq.${user.id},buyer_deleted_at.is.null),and(seller_id.eq.${user.id},seller_deleted_at.is.null)`
+        );
+
+      if (cancelled) return;
+
+      if (error) {
+        console.error('Error checking unread notifications:', error);
+        return;
+      }
+
+      if (!conversations || conversations.length === 0) {
+        setHasNewMessageNotification(false);
+        return;
+      }
+
+      const ids = conversations.map((conversation) => conversation.id);
+
+      const { data: messages, error: messageError } = await supabase
+        .from('messages')
+        .select('conversation_id, sender_id, created_at')
+        .in('conversation_id', ids);
+
+      if (cancelled) return;
+
+      if (messageError) {
+        console.error('Error checking unread messages:', messageError);
+        return;
+      }
+
+      const unread = (messages || []).some((message) => {
+        if (message.sender_id === user.id) return false;
+
+        const conversation = conversations.find(
+          (item) => item.id === message.conversation_id
+        );
+
+        if (!conversation) return false;
+
+        const lastReadAt =
+          conversation.buyer_id === user.id
+            ? conversation.buyer_last_read_at
+            : conversation.seller_last_read_at;
+
+        return (
+          !lastReadAt ||
+          new Date(message.created_at) > new Date(lastReadAt)
+        );
+      });
+
+      setHasNewMessageNotification(activeTab !== 'messages' && unread);
+    };
+
+    // Clear the main-tab notification while viewing Messages
+    if (activeTab === 'messages') {
+      setHasNewMessageNotification(false);
+    } else {
+      checkUnreadMessages();
+    }
+
+    const channel = supabase
+      .channel(`main-message-notification-${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+        },
+        (payload) => {
+          const newMessage = payload.new as {
+            sender_id: string;
+            conversation_id: string;
+          };
+
+          // Ignore messages sent by the current user
+          if (newMessage.sender_id === user.id) return;
+
+          // Show notification when browsing other tabs
+          if (activeTab !== 'messages') {
+            setHasNewMessageNotification(true);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(channel);
+    };
+  }, [supabase, user?.id, activeTab]);
 
   const signInWithDiscord = async () => {
     await supabase.auth.signInWithOAuth({
@@ -168,13 +346,43 @@ export default function DRMarketPage() {
             Plats for Sale ({plats.filter((p) => p.status === 'active').length})
           </button>
           {user && (
-            <button type="button" onClick={() => setActiveTab('mine')} className={`py-3 text-sm font-medium border-b-2 inline-flex items-center gap-2 whitespace-nowrap cursor-pointer transition ${activeTab === 'mine' ? 'border-amber-400 text-amber-400' : 'border-transparent text-slate-400 hover:text-slate-200'}`}>
+            <button
+              type="button"
+              onClick={() => setActiveTab('mine')}
+              className={`py-3 text-sm font-medium border-b-2 inline-flex items-center gap-2 whitespace-nowrap cursor-pointer transition ${
+                activeTab === 'mine'
+                  ? 'border-amber-400 text-amber-400'
+                  : 'border-transparent text-slate-400 hover:text-slate-200'
+              }`}
+            >
               <LayoutList className="w-4 h-4" />
               My Listings ({myActiveCount})
             </button>
           )}
-        </div>
-      </header>
+
+          {user && (
+            <button
+              type="button"
+              onClick={() => setActiveTab('messages')}
+              className={`py-3 text-sm font-medium border-b-2 inline-flex items-center gap-2 whitespace-nowrap cursor-pointer transition ${
+                activeTab === 'messages'
+                  ? 'border-amber-400 text-amber-400'
+                  : 'border-transparent text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <Mail className="w-4 h-4" />
+              Messages
+              {hasNewMessageNotification && activeTab !== 'messages' && (
+                <span
+                  title="Unread messages"
+                  aria-label="Unread messages"
+                  className="w-2 h-2 rounded-full bg-amber-400 shrink-0"
+                />
+              )}
+            </button>
+          )}
+	</div>
+	</header>
 
       <main className="w-[90%] mx-auto px-4 py-6">
         {activeTab === 'sales' && (
@@ -195,6 +403,7 @@ export default function DRMarketPage() {
               if (error) return alert(error.message);
               await loadAll();
             }}
+           onMessageSeller={handleMessageSeller}
           />
         )}
 
@@ -231,6 +440,14 @@ export default function DRMarketPage() {
               if (error) return alert(error.message);
               await loadAll();
             }}
+          />
+        )}
+
+        {activeTab === 'messages' && user && (
+          <MessagesTab
+            userId={user.id}
+            openConversationId={openConversationId}
+            stats={stats}
           />
         )}
 
@@ -281,6 +498,7 @@ export default function DRMarketPage() {
 
       <ListMaterialModal
         open={showListMat}
+        isDiscordUser={!!sellerDiscordId}
         stats={stats}
         initialMatId={quickMatId}
         defaultContact={defaultContact}

@@ -22,6 +22,7 @@ type Props = {
   onMarkSold: (listing: MaterialListing) => void;
   onEdit: (listing: MaterialListing) => void;
   onDelete: (listing: MaterialListing) => void;
+  onMessageSeller: (listing: MaterialListing) => void;
 };
 
 const MATERIAL_CATEGORY_ORDER = [
@@ -41,6 +42,7 @@ export function MaterialsTab({
   onMarkSold,
   onEdit,
   onDelete,
+  onMessageSeller,
 }: Props) {
   const [listingSearch, setListingSearch] = useState('');
   const [search, setSearch] = useState('');
@@ -442,7 +444,19 @@ return (
                                 </button>
                               </div>
                             )}
-                      </div>
+
+                            {/* Buyer Message Seller Button */}
+                            {userId && userId !== l.seller_id && (
+                              <button
+                                type="button"
+                                onClick={() => onMessageSeller(l)}
+                                className="inline-flex items-center gap-1 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/40 text-amber-400 px-2 py-1 rounded-md text-[10px] font-medium transition cursor-pointer whitespace-nowrap"
+                              >
+                                <MessageSquare className="w-3.5 h-3.5" />
+                                Message Seller
+                              </button>
+							)}
+                       </div>
                     </div>
                   ))}
                 </div>

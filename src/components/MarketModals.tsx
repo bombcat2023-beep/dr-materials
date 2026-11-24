@@ -5,6 +5,7 @@ import { MaterialStat, MaterialListing, SUBTYPE_OPTIONS, fmtNum, fmtUsd } from '
 
 type ListMaterialModalProps = {
   open: boolean;
+  isDiscordUser: boolean;
   stats: MaterialStat[];
   initialMatId: number | '';
   defaultContact: string;
@@ -26,7 +27,7 @@ type ListMaterialModalProps = {
 };
 
 export function ListMaterialModal({
-  open, stats, initialMatId, defaultContact, editing, onClose, onSubmit,
+  open, isDiscordUser, stats, initialMatId, defaultContact, editing, onClose, onSubmit,
 }: ListMaterialModalProps) {
   const [matSearch, setMatSearch] = useState('');
   const [matId, setMatId] = useState<number | ''>(initialMatId);
@@ -39,6 +40,7 @@ export function ListMaterialModal({
   const [contact, setContact] = useState(defaultContact);
   const [discord, setDiscord] = useState('');
   const [notes, setNotes] = useState('');
+  const [showContactReminder, setShowContactReminder] = useState(false);
 
   const uniqueMaterials = useMemo(() => {
     const map = new Map<number, MaterialStat>();
@@ -83,7 +85,10 @@ export function ListMaterialModal({
 
   const subtypeChoices = selectedMat ? SUBTYPE_OPTIONS[selectedMat.subcategory] || null : null;
 
+
   useEffect(() => {
+    setShowContactReminder(open && !editing && !isDiscordUser);
+
     if (editing) {
       setMatId(editing.material_id);
       setMatSearch('');
@@ -111,7 +116,7 @@ export function ListMaterialModal({
       setUsd('');
       setNotes('');
     }
-  }, [editing, initialMatId, open]);
+  }, [editing, initialMatId, open, isDiscordUser]);
 
   useEffect(() => {
     if (editing && editing.material_id === Number(matId) && editing.variant) return;
@@ -151,8 +156,47 @@ export function ListMaterialModal({
       notes: notes.trim() || null,
     });
   };
+
   return (
     <div className="fixed inset-0 bg-black/75 flex items-center justify-center p-4 z-50 overflow-y-auto">
+      {showContactReminder && (
+        <div className="fixed inset-0 z-[60] bg-black/80 flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-amber-500/50 rounded-xl p-6 w-full max-w-md space-y-4 shadow-2xl">
+            <h2 className="text-lg font-bold text-amber-400">
+              Important: Let Buyers Know How to Reach You!
+            </h2>
+
+            <p className="text-sm text-slate-300">
+              Since your account isn't linked to Discord, buyers won't automatically
+              have a way to contact you. Please include your preferred contact
+              information in the Notes field when posting your listing.
+            </p>
+
+            <div className="bg-slate-950 border border-slate-700 rounded-lg p-3 text-sm text-slate-300 space-y-1">
+              <p className="font-semibold text-slate-200">For example:</p>
+              <p>• Your Discord username</p>
+              <p>• Your in-game character name</p>
+              <p>• Your preferred way and time to be contacted</p>
+            </div>
+
+            <p className="text-xs text-slate-400">
+              Without contact information, interested buyers may have difficulty
+              reaching you.
+            </p>
+
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => setShowContactReminder(false)}
+                className="px-5 py-2 rounded-lg text-sm font-semibold bg-amber-500 hover:bg-amber-400 text-slate-950 cursor-pointer"
+              >
+                Got it!
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="bg-slate-900 border border-slate-700 rounded-xl p-6 w-full max-w-md space-y-3.5 my-8">
         <h2 className="text-lg font-bold">{editing ? 'Edit Material Listing' : 'List Material for Sale'}</h2>
 
