@@ -4,7 +4,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase';
 import { MaterialStat } from '@/types/market';
-import { MessageCircle, Loader2, ArrowLeft, Send, RefreshCw, Trash2 } from 'lucide-react';
+import {
+  MessageCircle,
+  Loader2,
+  ArrowLeft,
+  Send,
+  RefreshCw,
+  Trash2,
+} from 'lucide-react';
 
 type Conversation = {
   id: string;
@@ -31,15 +38,32 @@ type MessagesTabProps = {
   stats: MaterialStat[];
 };
 
-export function MessagesTab({ userId, openConversationId, stats }: MessagesTabProps) {
+export function MessagesTab({
+  userId,
+  openConversationId,
+  stats,
+}: MessagesTabProps) {
   const supabase = useMemo(() => createClient(), []);
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
-  const [emptyConversationIds, setEmptyConversationIds] = useState<string[]>([]);
-  const [unreadConversationIds, setUnreadConversationIds] = useState<string[]>([]);
-  const [listingMaterialIds, setListingMaterialIds] = useState<Record<string, number>>({});
+  const [selectedConversation, setSelectedConversation] =
+    useState<Conversation | null>(null);
+
+  const [emptyConversationIds, setEmptyConversationIds] = useState<string[]>(
+    []
+  );
+  const [unreadConversationIds, setUnreadConversationIds] = useState<string[]>(
+    []
+  );
+
+  const [listingMaterialIds, setListingMaterialIds] = useState<
+    Record<string, number>
+  >({});
+  const [listingSellerContacts, setListingSellerContacts] = useState<
+    Record<string, string>
+  >({});
+
   const [messageText, setMessageText] = useState('');
 
   const [loadingConversations, setLoadingConversations] = useState(true);
@@ -50,10 +74,12 @@ export function MessagesTab({ userId, openConversationId, stats }: MessagesTabPr
   // Load the signed-in user's conversations
   const loadConversations = async () => {
     setError(null);
-	
+
     const { data, error } = await supabase
       .from('conversations')
-      .select('id, buyer_id, seller_id, listing_id, listing_type, buyer_last_read_at, seller_last_read_at, created_at')
+      .select(
+        'id, buyer_id, seller_id, listing_id, listing_type, buyer_last_read_at, seller_last_read_at, created_at'
+      )
       .or(
         `and(buyer_id.eq.${userId},buyer_deleted_at.is.null),and(seller_id.eq.${userId},seller_deleted_at.is.null)`
       )
@@ -66,20 +92,26 @@ export function MessagesTab({ userId, openConversationId, stats }: MessagesTabPr
     }
 
     const loadedConversations = data || [];
-	
+
     // Find which conversations already contain messages
     const conversationIds = loadedConversations.map(
       (conversation) => conversation.id
     );
 
     if (conversationIds.length > 0) {
-      const { data: existingMessages, error: messageLookupError } = await supabase
+      const {
+        data: existingMessages,
+        error: messageLookupError,
+      } = await supabase
         .from('messages')
         .select('conversation_id, sender_id, created_at')
         .in('conversation_id', conversationIds);
 
       if (messageLookupError) {
-        console.error('Error checking conversation messages:', messageLookupError);
+        console.error(
+          'Error checking conversation messages:',
+          messageLookupError
+        );
         setEmptyConversationIds([]);
         setUnreadConversationIds([]);
       } else {
@@ -89,7 +121,9 @@ export function MessagesTab({ userId, openConversationId, stats }: MessagesTabPr
         >();
 
         (existingMessages || []).forEach((message) => {
-          const current = messagesByConversation.get(message.conversation_id) || {
+          const current = messagesByConversation.get(
+            message.conversation_id
+          ) || {
             hasMessages: false,
             latestIncoming: null,
           };
@@ -99,7 +133,8 @@ export function MessagesTab({ userId, openConversationId, stats }: MessagesTabPr
           if (message.sender_id !== userId) {
             if (
               !current.latestIncoming ||
-              new Date(message.created_at) > new Date(current.latestIncoming)
+              new Date(message.created_at) >
+                new Date(current.latestIncoming)
             ) {
               current.latestIncoming = message.created_at;
             }
@@ -145,29 +180,40 @@ export function MessagesTab({ userId, openConversationId, stats }: MessagesTabPr
     const materialListingIds = loadedConversations
       .filter(
         (conversation) =>
-          conversation.listing_type === 'material' && conversation.listing_id
+          conversation.listing_type === 'material' &&
+          conversation.listing_id
       )
       .map((conversation) => conversation.listing_id as string);
 
     if (materialListingIds.length > 0) {
-      const { data: materialListings, error: listingError } = await supabase
+      const {
+        data: materialListings,
+        error: listingError,
+      } = await supabase
         .from('material_listings')
-        .select('id, material_id')
+        .select('id, material_id, seller_contact')
         .in('id', materialListingIds);
 
       if (listingError) {
-        console.error('Error loading conversation listing details:', listingError);
+        console.error(
+          'Error loading conversation listing details:',
+          listingError
+        );
       } else {
         const lookup: Record<string, number> = {};
+        const contacts: Record<string, string> = {};
 
         (materialListings || []).forEach((listing) => {
           lookup[listing.id] = listing.material_id;
+          contacts[listing.id] = listing.seller_contact;
         });
 
         setListingMaterialIds(lookup);
+        setListingSellerContacts(contacts);
       }
     } else {
       setListingMaterialIds({});
+      setListingSellerContacts({});
     }
 
     setConversations(loadedConversations);
@@ -182,8 +228,8 @@ export function MessagesTab({ userId, openConversationId, stats }: MessagesTabPr
 
     initialLoad();
   }, [supabase, userId]);
-  
-   // Open a requested conversation directly, independently of inbox loading
+
+  // Open a requested conversation directly, independently of inbox loading
   useEffect(() => {
     if (!openConversationId) return;
 
@@ -209,7 +255,9 @@ export function MessagesTab({ userId, openConversationId, stats }: MessagesTabPr
       }
 
       if (!data) {
-        setError('This conversation could not be found or is no longer accessible.');
+        setError(
+          'This conversation could not be found or is no longer accessible.'
+        );
         return;
       }
 
@@ -221,11 +269,14 @@ export function MessagesTab({ userId, openConversationId, stats }: MessagesTabPr
         return [data, ...current];
       });
 
-      // Load the material name for this conversation's listing
+      // Load the material name and seller contact for this listing
       if (data.listing_type === 'material' && data.listing_id) {
-        const { data: listing, error: listingError } = await supabase
+        const {
+          data: listing,
+          error: listingError,
+        } = await supabase
           .from('material_listings')
-          .select('id, material_id')
+          .select('id, material_id, seller_contact')
           .eq('id', data.listing_id)
           .maybeSingle();
 
@@ -233,6 +284,11 @@ export function MessagesTab({ userId, openConversationId, stats }: MessagesTabPr
           setListingMaterialIds((current) => ({
             ...current,
             [listing.id]: listing.material_id,
+          }));
+
+          setListingSellerContacts((current) => ({
+            ...current,
+            [listing.id]: listing.seller_contact,
           }));
         }
       }
@@ -304,16 +360,35 @@ export function MessagesTab({ userId, openConversationId, stats }: MessagesTabPr
     };
   }, [selectedConversation, supabase]);
 
+  // Get the other participant's display name
   const getOtherParticipant = (conversation: Conversation) => {
+    // The listing's seller_contact identifies the seller.
+    // Only use it when the seller is the other participant.
+    if (
+      conversation.listing_type === 'material' &&
+      conversation.listing_id &&
+      conversation.seller_id !== userId
+    ) {
+      const contact = listingSellerContacts[conversation.listing_id];
+
+      if (contact) return contact;
+    }
+
+    // Fall back to the other participant's user ID.
     return conversation.buyer_id === userId
       ? conversation.seller_id
       : conversation.buyer_id;
   };
 
   const getListingLabel = (conversation: Conversation) => {
-    if (conversation.listing_type === 'material' && conversation.listing_id) {
+    if (
+      conversation.listing_type === 'material' &&
+      conversation.listing_id
+    ) {
       const materialId = listingMaterialIds[conversation.listing_id];
-      const material = stats.find((item) => item.material_id === materialId);
+      const material = stats.find(
+        (item) => item.material_id === materialId
+      );
 
       return material?.name || 'Material Listing';
     }
@@ -392,7 +467,6 @@ export function MessagesTab({ userId, openConversationId, stats }: MessagesTabPr
     setLoadingMessages(false);
   };
 
-
   // Listen for new messages in realtime
   useEffect(() => {
     const channel = supabase
@@ -430,7 +504,10 @@ export function MessagesTab({ userId, openConversationId, stats }: MessagesTabPr
               );
 
               if (readError) {
-                console.error('Error marking conversation as read:', readError);
+                console.error(
+                  'Error marking conversation as read:',
+                  readError
+                );
               }
             }
           }
@@ -445,7 +522,6 @@ export function MessagesTab({ userId, openConversationId, stats }: MessagesTabPr
       supabase.removeChannel(channel);
     };
   }, [supabase, userId, selectedConversation]);
-
 
   const deleteMessage = async (message: Message) => {
     if (message.sender_id !== userId) return;
@@ -473,7 +549,6 @@ export function MessagesTab({ userId, openConversationId, stats }: MessagesTabPr
     );
   };
 
-
   const sendMessage = async () => {
     const body = messageText.trim();
 
@@ -482,13 +557,11 @@ export function MessagesTab({ userId, openConversationId, stats }: MessagesTabPr
     setSending(true);
     setError(null);
 
-    const { error } = await supabase
-      .from('messages')
-      .insert({
-        conversation_id: selectedConversation.id,
-        sender_id: userId,
-        body,
-      });
+    const { error } = await supabase.from('messages').insert({
+      conversation_id: selectedConversation.id,
+      sender_id: userId,
+      body,
+    });
 
     if (error) {
       console.error('Error sending message:', error);
@@ -537,7 +610,11 @@ export function MessagesTab({ userId, openConversationId, stats }: MessagesTabPr
 
       <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden min-h-[500px] flex">
         {/* Conversation list */}
-        <div className={`${selectedConversation ? 'hidden md:block' : 'block'} w-full md:w-80 shrink-0 border-r border-slate-800`}>
+        <div
+          className={`${
+            selectedConversation ? 'hidden md:block' : 'block'
+          } w-full md:w-80 shrink-0 border-r border-slate-800`}
+        >
           <div className="flex items-center justify-between p-4 border-b border-slate-800">
             <h3 className="font-semibold text-slate-200">Inbox</h3>
 
@@ -576,7 +653,9 @@ export function MessagesTab({ userId, openConversationId, stats }: MessagesTabPr
                 <div
                   key={conversation.id}
                   className={`flex items-center gap-2 p-4 hover:bg-slate-800/50 transition ${
-                    selectedConversation?.id === conversation.id ? 'bg-slate-800/70' : ''
+                    selectedConversation?.id === conversation.id
+                      ? 'bg-slate-800/70'
+                      : ''
                   }`}
                 >
                   <button
@@ -622,7 +701,11 @@ export function MessagesTab({ userId, openConversationId, stats }: MessagesTabPr
         </div>
 
         {/* Conversation window */}
-        <div className={`${selectedConversation ? 'block' : 'hidden md:flex'} flex-1 min-w-0 flex flex-col`}>
+        <div
+          className={`${
+            selectedConversation ? 'block' : 'hidden md:flex'
+          } flex-1 min-w-0 flex flex-col`}
+        >
           {!selectedConversation ? (
             <div className="hidden md:flex flex-1 flex-col items-center justify-center text-slate-500">
               <MessageCircle className="w-12 h-12 mb-3 opacity-30" />
@@ -639,6 +722,7 @@ export function MessagesTab({ userId, openConversationId, stats }: MessagesTabPr
                 >
                   <ArrowLeft className="w-5 h-5" />
                 </button>
+
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-slate-200 break-all">
                     {getOtherParticipant(selectedConversation)}
@@ -658,7 +742,9 @@ export function MessagesTab({ userId, openConversationId, stats }: MessagesTabPr
                 ) : messages.length === 0 ? (
                   <div className="text-center text-slate-500 py-12">
                     <p>No messages in this conversation yet.</p>
-                    <p className="text-sm mt-1">Send the first message below!</p>
+                    <p className="text-sm mt-1">
+                      Send the first message below!
+                    </p>
                   </div>
                 ) : (
                   messages.map((message) => {
@@ -667,7 +753,9 @@ export function MessagesTab({ userId, openConversationId, stats }: MessagesTabPr
                     return (
                       <div
                         key={message.id}
-                        className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}
+                        className={`flex ${
+                          isMine ? 'justify-end' : 'justify-start'
+                        }`}
                       >
                         <div
                           className={`max-w-[85%] rounded-2xl px-4 py-2 ${
@@ -676,9 +764,18 @@ export function MessagesTab({ userId, openConversationId, stats }: MessagesTabPr
                               : 'bg-slate-800 text-slate-100 rounded-bl-sm'
                           }`}
                         >
-                          <p className="text-sm whitespace-pre-wrap break-words">{message.body}</p>
+                          <p className="text-sm whitespace-pre-wrap break-words">
+                            {message.body}
+                          </p>
+
                           <div className="flex items-center justify-between gap-4 mt-1">
-                            <p className={`text-[10px] ${isMine ? 'text-slate-800/70' : 'text-slate-500'}`}>
+                            <p
+                              className={`text-[10px] ${
+                                isMine
+                                  ? 'text-slate-800/70'
+                                  : 'text-slate-500'
+                              }`}
+                            >
                               {formatTime(message.created_at)}
                             </p>
 
@@ -717,6 +814,7 @@ export function MessagesTab({ userId, openConversationId, stats }: MessagesTabPr
                     disabled={sending}
                     className="flex-1 resize-none bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-amber-500"
                   />
+
                   <button
                     type="button"
                     onClick={sendMessage}
@@ -731,6 +829,7 @@ export function MessagesTab({ userId, openConversationId, stats }: MessagesTabPr
                     <span className="hidden sm:inline">Send</span>
                   </button>
                 </div>
+
                 <p className="text-[10px] text-slate-500 mt-1 text-right">
                   {messageText.length}/5000
                 </p>
