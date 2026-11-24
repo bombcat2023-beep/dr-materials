@@ -1,7 +1,12 @@
 
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { createClient } from '@/lib/supabase';
 import { MaterialStat } from '@/types/market';
 import {
@@ -30,6 +35,12 @@ type Message = {
   sender_id: string;
   body: string;
   created_at: string;
+};
+
+type ConversationMessageInfo = {
+  hasMessages: boolean;
+  latestIncoming: string | null;
+  latestActivity: string | null;
 };
 
 type MessagesTabProps = {
@@ -71,8 +82,22 @@ export function MessagesTab({
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Load the signed-in user's conversations
+  // Each inbox load gets a sequence number.
+  // Older requests cannot overwrite the results of newer requests.
+  const conversationLoadRequest = useRef(0);
+
+  // Keep the currently selected conversation available to realtime callbacks
+  // without repeatedly rebuilding the subscription.
+  const selectedConversationRef = useRef<Conversation | null>(null);
+
+  useEffect(() => {
+    selectedConversationRef.current = selectedConversation;
+  }, [selectedConversation]);
+
+  // Load the signed-in user's conversations.
   const loadConversations = async () => {
+    const requestId = ++conversationLoadRequest.current;
+
     setError(null);
 
     const { data, error } = await supabase
@@ -85,6 +110,9 @@ export function MessagesTab({
       )
       .order('created_at', { ascending: false });
 
+    // Ignore this result if a newer inbox request has started.
+    if (requestId !== conversationLoadRequest.current) return;
+
     if (error) {
       console.error('Error loading conversations:', error);
       setError('Unable to load your conversations.');
@@ -93,11 +121,17 @@ export function MessagesTab({
 
     const loadedConversations = data || [];
 
-    // Find which conversations already contain messages
     const conversationIds = loadedConversations.map(
       (conversation) => conversation.id
     );
 
+    const messagesByConversation = new Map<
+      string,
+      ConversationMessageInfo
+    >();
+
+    // Find which conversations contain messages, their latest activity,
+    // and whether they have unread incoming messages.
     if (conversationIds.length > 0) {
       const {
         data: existingMessages,
@@ -107,34 +141,41 @@ export function MessagesTab({
         .select('conversation_id, sender_id, created_at')
         .in('conversation_id', conversationIds);
 
+      if (requestId !== conversationLoadRequest.current) return;
+
       if (messageLookupError) {
         console.error(
           'Error checking conversation messages:',
           messageLookupError
         );
+
         setEmptyConversationIds([]);
         setUnreadConversationIds([]);
       } else {
-        const messagesByConversation = new Map<
-          string,
-          { hasMessages: boolean; latestIncoming: string | null }
-        >();
-
         (existingMessages || []).forEach((message) => {
           const current = messagesByConversation.get(
             message.conversation_id
           ) || {
             hasMessages: false,
             latestIncoming: null,
+            latestActivity: null,
           };
 
           current.hasMessages = true;
 
+          if (
+            !current.latestActivity ||
+            new Date(message.created_at).getTime() >
+              new Date(current.latestActivity).getTime()
+          ) {
+            current.latestActivity = message.created_at;
+          }
+
           if (message.sender_id !== userId) {
             if (
               !current.latestIncoming ||
-              new Date(message.created_at) >
-                new Date(current.latestIncoming)
+              new Date(message.created_at).getTime() >
+                new Date(current.latestIncoming).getTime()
             ) {
               current.latestIncoming = message.created_at;
             }
@@ -164,7 +205,8 @@ export function MessagesTab({
 
             return (
               !lastReadAt ||
-              new Date(latestIncoming) > new Date(lastReadAt)
+              new Date(latestIncoming).getTime() >
+                new Date(lastReadAt).getTime()
             );
           })
           .map((conversation) => conversation.id);
@@ -176,7 +218,9 @@ export function MessagesTab({
       setUnreadConversationIds([]);
     }
 
-    // Find the material listing IDs associated with these conversations
+    if (requestId !== conversationLoadRequest.current) return;
+
+    // Find material listing details associated with these conversations.
     const materialListingIds = loadedConversations
       .filter(
         (conversation) =>
@@ -193,6 +237,8 @@ export function MessagesTab({
         .from('material_listings')
         .select('id, material_id, seller_contact')
         .in('id', materialListingIds);
+
+      if (requestId !== conversationLoadRequest.current) return;
 
       if (listingError) {
         console.error(
@@ -216,20 +262,52 @@ export function MessagesTab({
       setListingSellerContacts({});
     }
 
-    setConversations(loadedConversations);
+    if (requestId !== conversationLoadRequest.current) return;
+
+    // Put conversations with the newest message activity first.
+    const sortedConversations = [...loadedConversations].sort(
+      (a, b) => {
+        const aActivity =
+          messagesByConversation.get(a.id)?.latestActivity ||
+          a.created_at;
+
+        const bActivity =
+          messagesByConversation.get(b.id)?.latestActivity ||
+          b.created_at;
+
+        return (
+          new Date(bActivity).getTime() -
+          new Date(aActivity).getTime()
+        );
+      }
+    );
+
+    setConversations(sortedConversations);
   };
 
+  // Initial inbox load.
   useEffect(() => {
+    let cancelled = false;
+
     const initialLoad = async () => {
       setLoadingConversations(true);
+
       await loadConversations();
-      setLoadingConversations(false);
+
+      if (!cancelled) {
+        setLoadingConversations(false);
+      }
     };
 
     initialLoad();
+
+    return () => {
+      cancelled = true;
+      conversationLoadRequest.current += 1;
+    };
   }, [supabase, userId]);
 
-  // Open a requested conversation directly, independently of inbox loading
+  // Open a requested conversation directly.
   useEffect(() => {
     if (!openConversationId) return;
 
@@ -261,6 +339,12 @@ export function MessagesTab({
         return;
       }
 
+      // Refresh the authoritative inbox before selecting this conversation.
+      await loadConversations();
+
+      if (cancelled) return;
+
+      // Keep the requested conversation available in the inbox.
       setConversations((current) => {
         if (current.some((item) => item.id === data.id)) {
           return current;
@@ -269,7 +353,7 @@ export function MessagesTab({
         return [data, ...current];
       });
 
-      // Load the material name and seller contact for this listing
+      // Load the material name and seller contact for this listing.
       if (data.listing_type === 'material' && data.listing_id) {
         const {
           data: listing,
@@ -280,7 +364,9 @@ export function MessagesTab({
           .eq('id', data.listing_id)
           .maybeSingle();
 
-        if (!cancelled && !listingError && listing) {
+        if (cancelled) return;
+
+        if (!listingError && listing) {
           setListingMaterialIds((current) => ({
             ...current,
             [listing.id]: listing.material_id,
@@ -310,14 +396,17 @@ export function MessagesTab({
     };
   }, [openConversationId, supabase]);
 
-  // Load messages when a conversation is selected
+  // Load messages when a conversation is selected.
   useEffect(() => {
     if (!selectedConversation) {
       setMessages([]);
+      setLoadingMessages(false);
       return;
     }
 
     let cancelled = false;
+
+    const conversationId = selectedConversation.id;
 
     const loadMessages = async () => {
       setLoadingMessages(true);
@@ -326,7 +415,7 @@ export function MessagesTab({
       const { data, error } = await supabase
         .from('messages')
         .select('id, conversation_id, sender_id, body, created_at')
-        .eq('conversation_id', selectedConversation.id)
+        .eq('conversation_id', conversationId)
         .order('created_at', { ascending: true });
 
       if (cancelled) return;
@@ -341,7 +430,7 @@ export function MessagesTab({
         const { error: readError } = await supabase.rpc(
           'mark_conversation_read',
           {
-            p_conversation_id: selectedConversation.id,
+            p_conversation_id: conversationId,
           }
         );
 
@@ -350,7 +439,9 @@ export function MessagesTab({
         }
       }
 
-      setLoadingMessages(false);
+      if (!cancelled) {
+        setLoadingMessages(false);
+      }
     };
 
     loadMessages();
@@ -360,7 +451,7 @@ export function MessagesTab({
     };
   }, [selectedConversation, supabase]);
 
-  // Get the other participant's display name
+  // Get the other participant's display name.
   const getOtherParticipant = (conversation: Conversation) => {
     // The listing's seller_contact identifies the seller.
     // Only use it when the seller is the other participant.
@@ -386,6 +477,7 @@ export function MessagesTab({
       conversation.listing_id
     ) {
       const materialId = listingMaterialIds[conversation.listing_id];
+
       const material = stats.find(
         (item) => item.material_id === materialId
       );
@@ -408,7 +500,7 @@ export function MessagesTab({
     setMessageText('');
     setSelectedConversation(conversation);
 
-    // Remove the unread indicator immediately
+    // Remove the unread indicator immediately.
     setUnreadConversationIds((current) =>
       current.filter((id) => id !== conversation.id)
     );
@@ -431,11 +523,18 @@ export function MessagesTab({
       return;
     }
 
+    // Invalidate any inbox load that started before this deletion completed.
+    conversationLoadRequest.current += 1;
+
     setConversations((current) =>
       current.filter((item) => item.id !== conversation.id)
     );
 
     setEmptyConversationIds((current) =>
+      current.filter((id) => id !== conversation.id)
+    );
+
+    setUnreadConversationIds((current) =>
       current.filter((id) => id !== conversation.id)
     );
 
@@ -448,14 +547,19 @@ export function MessagesTab({
   const refreshMessages = async () => {
     if (!selectedConversation || loadingMessages) return;
 
+    const conversationId = selectedConversation.id;
+
     setLoadingMessages(true);
     setError(null);
 
     const { data, error } = await supabase
       .from('messages')
       .select('id, conversation_id, sender_id, body, created_at')
-      .eq('conversation_id', selectedConversation.id)
+      .eq('conversation_id', conversationId)
       .order('created_at', { ascending: true });
+
+    // Do not put old conversation messages into a newly selected chat.
+    if (selectedConversationRef.current?.id !== conversationId) return;
 
     if (error) {
       console.error('Error refreshing messages:', error);
@@ -467,7 +571,7 @@ export function MessagesTab({
     setLoadingMessages(false);
   };
 
-  // Listen for new messages in realtime
+  // Listen for both message changes and conversation changes in realtime.
   useEffect(() => {
     const channel = supabase
       .channel(`messages-${userId}`)
@@ -481,25 +585,36 @@ export function MessagesTab({
         async (payload) => {
           const newMessage = payload.new as Message;
 
-          // Ignore our own messages (sendMessage already handles those)
+          // Ignore our own messages.
+          // sendMessage handles those locally.
           if (newMessage.sender_id === userId) return;
 
-          // If this conversation is currently open, refresh its messages
-          if (selectedConversation?.id === newMessage.conversation_id) {
+          const currentConversation =
+            selectedConversationRef.current;
+
+          // If this conversation is currently open, refresh its messages.
+          if (
+            currentConversation?.id === newMessage.conversation_id
+          ) {
             const { data, error } = await supabase
               .from('messages')
               .select('id, conversation_id, sender_id, body, created_at')
-              .eq('conversation_id', selectedConversation.id)
+              .eq('conversation_id', currentConversation.id)
               .order('created_at', { ascending: true });
 
-            if (!error && data) {
+            if (
+              !error &&
+              data &&
+              selectedConversationRef.current?.id ===
+                currentConversation.id
+            ) {
               setMessages(data);
 
-              // Keep the open conversation marked as read
+              // Keep the open conversation marked as read.
               const { error: readError } = await supabase.rpc(
                 'mark_conversation_read',
                 {
-                  p_conversation_id: selectedConversation.id,
+                  p_conversation_id: currentConversation.id,
                 }
               );
 
@@ -512,7 +627,20 @@ export function MessagesTab({
             }
           }
 
-          // Refresh inbox and unread indicators after marking read
+          // Refresh the inbox and unread indicators.
+          await loadConversations();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'conversations',
+        },
+        async () => {
+          // A new conversation or an updated conversation row
+          // should cause every participant's inbox to refresh.
           await loadConversations();
         }
       )
@@ -521,7 +649,7 @@ export function MessagesTab({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [supabase, userId, selectedConversation]);
+  }, [supabase, userId]);
 
   const deleteMessage = async (message: Message) => {
     if (message.sender_id !== userId) return;
@@ -547,6 +675,8 @@ export function MessagesTab({
     setMessages((current) =>
       current.filter((item) => item.id !== message.id)
     );
+
+    await loadConversations();
   };
 
   const sendMessage = async () => {
@@ -554,36 +684,45 @@ export function MessagesTab({
 
     if (!body || !selectedConversation || sending) return;
 
+    const conversationId = selectedConversation.id;
+
     setSending(true);
     setError(null);
 
-    const { error } = await supabase.from('messages').insert({
-      conversation_id: selectedConversation.id,
-      sender_id: userId,
-      body,
-    });
+    try {
+      const { error } = await supabase.from('messages').insert({
+        conversation_id: conversationId,
+        sender_id: userId,
+        body,
+      });
 
-    if (error) {
-      console.error('Error sending message:', error);
-      setError('Message failed to send. Please try again.');
+      if (error) {
+        console.error('Error sending message:', error);
+        setError('Message failed to send. Please try again.');
+        return;
+      }
+
+      setMessageText('');
+
+      const { data, error: reloadError } = await supabase
+        .from('messages')
+        .select('id, conversation_id, sender_id, body, created_at')
+        .eq('conversation_id', conversationId)
+        .order('created_at', { ascending: true });
+
+      // Only update the visible chat if it is still the same conversation.
+      if (
+        !reloadError &&
+        data &&
+        selectedConversationRef.current?.id === conversationId
+      ) {
+        setMessages(data);
+      }
+
+      await loadConversations();
+    } finally {
       setSending(false);
-      return;
     }
-
-    setMessageText('');
-
-    const { data, error: reloadError } = await supabase
-      .from('messages')
-      .select('id, conversation_id, sender_id, body, created_at')
-      .eq('conversation_id', selectedConversation.id)
-      .order('created_at', { ascending: true });
-
-    if (!reloadError && data) {
-      setMessages(data);
-    }
-
-    await loadConversations();
-    setSending(false);
   };
 
   const formatTime = (date: string) => {
