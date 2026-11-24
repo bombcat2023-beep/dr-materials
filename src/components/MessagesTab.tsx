@@ -183,18 +183,58 @@ export function MessagesTab({ userId, openConversationId, stats }: MessagesTabPr
     initialLoad();
   }, [supabase, userId]);
   
-  // Automatically open a conversation requested by the parent page
+   // Open a requested conversation directly, independently of inbox loading
   useEffect(() => {
-    if (!openConversationId || conversations.length === 0) return;
+    if (!openConversationId) return;
 
-    const target = conversations.find(
-      (conversation) => conversation.id === openConversationId
-    );
+    let cancelled = false;
 
-    if (target) {
-      openConversation(target);
-    }
-  }, [openConversationId, conversations]);
+    const loadRequestedConversation = async () => {
+      setError(null);
+
+      const { data, error } = await supabase
+        .from('conversations')
+        .select(
+          'id, buyer_id, seller_id, listing_id, listing_type, buyer_last_read_at, seller_last_read_at, created_at'
+        )
+        .eq('id', openConversationId)
+        .maybeSingle();
+
+      if (cancelled) return;
+
+      if (error) {
+        console.error('Error opening requested conversation:', error);
+        setError('Unable to open this conversation. Please try again.');
+        return;
+      }
+
+      if (!data) {
+        setError('This conversation could not be found or is no longer accessible.');
+        return;
+      }
+
+      setConversations((current) => {
+        if (current.some((item) => item.id === data.id)) {
+          return current;
+        }
+
+        return [data, ...current];
+      });
+
+      setMessageText('');
+      setSelectedConversation(data);
+
+      setUnreadConversationIds((current) =>
+        current.filter((id) => id !== data.id)
+      );
+    };
+
+    loadRequestedConversation();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [openConversationId, supabase]);
 
   // Load messages when a conversation is selected
   useEffect(() => {
@@ -270,7 +310,7 @@ export function MessagesTab({ userId, openConversationId, stats }: MessagesTabPr
     }
   };
 
-  const openConversation = async (conversation: Conversation) => {
+  const openConversation = (conversation: Conversation) => {
     setError(null);
     setMessageText('');
     setSelectedConversation(conversation);
@@ -279,15 +319,6 @@ export function MessagesTab({ userId, openConversationId, stats }: MessagesTabPr
     setUnreadConversationIds((current) =>
       current.filter((id) => id !== conversation.id)
     );
-
-    // Mark the conversation as read in the database
-    const { error } = await supabase.rpc('mark_conversation_read', {
-      p_conversation_id: conversation.id,
-    });
-
-    if (error) {
-      console.error('Error marking conversation as read:', error);
-    }
   };
 
   const deleteConversation = async (conversation: Conversation) => {
