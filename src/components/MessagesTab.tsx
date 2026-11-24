@@ -221,6 +221,24 @@ export function MessagesTab({ userId, openConversationId, stats }: MessagesTabPr
         return [data, ...current];
       });
 
+      // Load the material name for this conversation's listing
+      if (data.listing_type === 'material' && data.listing_id) {
+        const { data: listing, error: listingError } = await supabase
+          .from('material_listings')
+          .select('id, material_id')
+          .eq('id', data.listing_id)
+          .maybeSingle();
+
+        if (!cancelled && !listingError && listing) {
+          setListingMaterialIds((current) => ({
+            ...current,
+            [listing.id]: listing.material_id,
+          }));
+        }
+      }
+
+      if (cancelled) return;
+
       setMessageText('');
       setSelectedConversation(data);
 
